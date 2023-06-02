@@ -290,7 +290,7 @@ class Interface:
                 id_List = self.objsDynamic
 
             for id in id_List:
-                linear, angular = p.getBaseVelocity(id) # 这里是判断有没有终止运动，如果没有的话就再运动一会
+                linear, angular = p.getBaseVelocity(id) 
 
                 if linear[0] * linear[0] + linear[1] * linear[1] + linear[2] * linear[2] > linearTolSqr:
                     end = False

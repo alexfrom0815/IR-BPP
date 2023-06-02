@@ -1,10 +1,8 @@
-import copy
 import time
 import gym
 import numpy as np
-import torch
 from torch import load
-from tools import getRotationMatrix, pose_distance, draw_heatmap
+from tools import getRotationMatrix
 import transforms3d
 from .Interface import Interface
 from .IRcreator import RandomItemCreator, LoadItemCreator, RandomInstanceCreator, RandomCateCreator
@@ -239,8 +237,7 @@ class PackingGame(gym.Env):
     def gen_next_item_ID(self):
         return self.item_creator.preview(1)[0]
 
-    # # # # # A wrapped function for parallel env
-    # # # # # 这个函数可以被写成一个死指令, 也就是说, 对传进来的参数没反应
+
     def get_action_candidates(self, orderAction):
         if not self.LFSS:
             self.hierachical = True
@@ -279,20 +276,6 @@ class PackingGame(gym.Env):
             all_obs.append(locObservation)
         return np.concatenate(all_obs, axis=0)
 
-    # LFSS
-    # def get_action_candidates_LFSS(self, orderAction):
-    #     self.hierachical = True
-    #     vList = []
-    #     for largeID in self.next_k_item_ID:
-    #         vList.append(self.infoDict[largeID][0]['volume'])
-    #     orderAction = np.argmax(vList)
-    #     self.next_item_ID = self.next_k_item_ID[orderAction]
-    #     self.space.get_possible_position(self.next_item_ID, self.shapeDict[self.next_item_ID], self.selectedAction)
-    #     self.chooseItem = False
-    #     locObservation  = self.cur_observation(genItem = False)
-    #     self.chooseItem = True
-    #     self.orderAction = orderAction
-    #     return locObservation
 
     def cur_observation(self, genItem = True, draw = False):
         if self.item_idx != 0 and self.elementWise:
@@ -352,15 +335,6 @@ class PackingGame(gym.Env):
                         elif len(self.candidates) < self.selectedAction:
                             dif = self.selectedAction - len(self.candidates)
                             self.candidates = np.concatenate((self.candidates, np.zeros((dif, 5))), axis=0)
-                        # if len(self.candidates) > self.selectedAction: # Random action implementation.
-                        #     randomRange = np.arange(0, min(len(self.candidates), self.selectedAction * 2)).tolist()
-                        #     randomRange = random.sample(randomRange, self.selectedAction)
-                        #     # selectedIndex = np.argsort(self.candidates[:,3])[0: self.selectedAction]
-                        #     selectedIndex = np.argsort(self.candidates[:,3])[randomRange]
-                        #     self.candidates = self.candidates[selectedIndex]
-                        # elif len(self.candidates) < self.selectedAction:
-                        #     dif = self.selectedAction - len(self.candidates)
-                        #     self.candidates = np.concatenate((self.candidates, np.zeros((dif, 5))), axis=0)
 
                 if self.candidates is None:
                     poszFlatten = self.space.posZValid.reshape(-1)
@@ -376,10 +350,6 @@ class PackingGame(gym.Env):
             self.next_k_item_ID = self.item_creator.preview(self.previewNum)
             result = np.concatenate((np.array(self.next_k_item_ID), self.space.heightmapC.reshape(-1)))
 
-        # e = time.time()
-        # self.oneshapeTime = self.oneshapeTime + e - s
-        # self.oneshapeFreq += 1
-        # print('One shape cost:', self.oneshapeTime / self.oneshapeFreq)
         self.action_stop = time.time()
         return result
 
@@ -399,14 +369,8 @@ class PackingGame(gym.Env):
             lx, ly = np.unravel_index(index, (self.rangeX_A, self.rangeY_A))
         elif self.heuAction:
             heuIdx = np.unravel_index(action, (len(self.heuristicPool),))[0]
-            # dirIdx, rotIdx, heuIdx = np.unravel_index(action, (4, self.rotNum, len(self.heuristicPool)))
-            # rotIdx = action % self.rotNum
-            # heuIdx = action // self.rotNum
-            # lx, ly = self.space.get_heuristic_action(dirIdx, rotIdx, self.heuristicPool[heuIdx], self.next_item_ID, self.shapeDict[self.next_item_ID])
             rotIdx, lx, ly = self.space.get_heuristic_action(0, self.heuristicPool[heuIdx], self.next_item_ID, self.shapeDict[self.next_item_ID])
         else:
-            # rotIdx = action // (self.rangeX_A * self.rangeY_A)
-            # index = action % (self.rangeX_A * self.rangeY_A)
             if self.actionType == 'UniformTuple':
                 rotIdx, lx, ly = action
             elif self.selectedAction:
@@ -428,7 +392,7 @@ class PackingGame(gym.Env):
 
         return naiveMask
 
-    def prejudge(self, rotIdx, translation, naiveMask): # 只是在判断横向的boudingbox，没有判断高度
+    def prejudge(self, rotIdx, translation, naiveMask):
         extents = self.shapeDict[self.next_item_ID][rotIdx].extents
         if np.round(translation[0] + extents[0] - self.bin_dimension[0], decimals=6)  > 0 \
             or np.round(translation[1] + extents[1] - self.bin_dimension[1], decimals=6) > 0:
@@ -472,7 +436,6 @@ class PackingGame(gym.Env):
             height = self.space.posZmap[rotIdx, coordinate[0], coordinate[1]]
             self.interface.adjustHeight(id , height + self.tolerance)
         else:
-        #     self.interface.computeInitialHeight(id)
             assert False
 
         if succeeded:
@@ -502,11 +465,7 @@ class PackingGame(gym.Env):
                     positionT, orientationT = self.interface.get_Wraped_Position_And_Orientation(idNow, inner=False)
                     self.packed[replayIdx][2] = positionT
                     self.packed[replayIdx][3] = orientationT
-            # if self.save:
-            #     self.figure8.append(copy.deepcopy(self.packed))
-            #     torch.save(self.figure8, 'figure8_{}.pt'.format(self.timeStr))
-            #     if len(self.figure8) > 10000:
-            #         exit()
+
             if self.calFreq:
                 self.dicRecorder[self.dicPath[self.next_item_ID]] += 1
                 freq = np.array(list(self.dicRecorder.values())).astype(np.float)

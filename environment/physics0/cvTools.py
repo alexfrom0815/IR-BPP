@@ -58,14 +58,11 @@ def find_convex_vetex(approx):
 
         return np.where(cross < 0)[0]
 
-# only consider one rot now, I CAN JUDGE THE AREA OF CONVEX HULL BOX, TO JUDGE IF NEEDED
 def getConvexHullActions(posZValid, mask, actionType, heightResolution, draw = False):
     allCandidates = []
     save = False
     for rotIdx in range(len(posZValid)):
         allHulls, V, s = convexHulls(posZValid[rotIdx], mask[rotIdx], actionType, heightResolution, draw)
-        # if rotIdx == 2:
-        #     torch.save([posZValid, mask], 'mask_{}.pt'.format(format(time.strftime('%Y.%m.%d-%H-%M-%S', time.localtime(time.time())))))
         if s:
             save = True
         if len(allHulls) != 0:
@@ -80,7 +77,6 @@ def getConvexHullActions(posZValid, mask, actionType, heightResolution, draw = F
     else:
         return None, save
 
-# Operate on single rotation.
 def convexHulls(posZMap, mask, actionType,  heightResolution = 0.01, draw = False):
     mapInt = (posZMap // heightResolution).astype(np.int32)
     mapInt[mask==0] = -1
@@ -90,13 +86,13 @@ def convexHulls(posZMap, mask, actionType,  heightResolution = 0.01, draw = Fals
     if draw[0]:
         mapO = posZMap // (1 / 255)
         mapO = mapO.astype(np.uint8)
-        mapO = cv2.applyColorMap(mapO, cv2.COLORMAP_JET)  # 注意此处的三通道热力图是cv2专有的GBR排列
+        mapO = cv2.applyColorMap(mapO, cv2.COLORMAP_JET)
 
         mapDraw = posZMap * mask
         mapDraw = mapDraw // (1 / 255)
         mapDraw[mask == 0] = -1
         mapDraw = mapDraw.astype(np.uint8)
-        mapDraw = cv2.applyColorMap(mapDraw, cv2.COLORMAP_JET)  # 注意此处的三通道热力图是cv2专有的GBR排列
+        mapDraw = cv2.applyColorMap(mapDraw, cv2.COLORMAP_JET)
 
     for h in uniqueHeight:
         if h == -1: continue
@@ -132,9 +128,6 @@ def convexHulls(posZMap, mask, actionType,  heightResolution = 0.01, draw = Fals
             if defects is not None:
                 allCandidates.append(defects.reshape(-1,2))
 
-            # if len(candidate) > 6 and draw[1] < 5 and (np.sum(check / 255) / np.prod(check.shape)) > 0.2:
-            #     save = True
-
             if draw[0]:
                 origin = cv2.cvtColor(check, cv2.COLOR_GRAY2BGR)
                 # Draw contour
@@ -147,10 +140,6 @@ def convexHulls(posZMap, mask, actionType,  heightResolution = 0.01, draw = Fals
                 for singH in candidate:
                     cv2.circle(mapDraw, tuple(singH.reshape(2).tolist()), radius=1, color=(0,0,255))
 
-                # invalidM = cv2.cvtColor(check, cv2.COLOR_GRAY2BGR)
-                # invalidIdx = np.where(mask[(candidate[:, 0], candidate[:, 1])] == 0)[0]
-                # for idx in invalidIdx:
-                #     cv2.circle(invalidM, tuple(candidate[idx].reshape(2).tolist()), radius=1, color=(0,0,255))
                 canThisLayer = cv2.cvtColor(check, cv2.COLOR_GRAY2BGR)
                 for singH in candidate:
                     cv2.circle(canThisLayer, tuple(singH.reshape(2).tolist()), radius=1, color=(0, 0, 255))
@@ -168,7 +157,6 @@ def convexHulls(posZMap, mask, actionType,  heightResolution = 0.01, draw = Fals
                                                       canvasC, # 轮廓
                                                       canvasH, # 凸包
                                                       canThisLayer), axis=1))
-                    # torch.save([posZMap, mask], 'debug.pt')
                     cv2.waitKey(0)
     V = None
     if len(allCandidates) != 0:

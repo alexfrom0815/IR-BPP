@@ -2,6 +2,7 @@ import numpy as np
 import copy
 import torch
 
+# 如果想把dict改掉的话，主要是修改这里的逻辑
 class ItemCreator(object): # 存一个查shape的字典， 再存一个记录编号的list
     def __init__(self):
         self.item_dict = {} # 根据编号查shape的字典

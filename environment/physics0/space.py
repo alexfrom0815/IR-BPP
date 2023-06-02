@@ -51,49 +51,6 @@ class Space(object):
         self.item_idx = 0
         self.scene = []
 
-    # def shot_heightMap(self, ray_origins_ini, bounds, xRange=20, yRange=20, start=[0, 0, 0]):  # xRange, yRange the grid range.
-    # 
-    #     batchNum = int(np.ceil(xRange * yRange / (p.MAX_RAY_INTERSECTION_BATCH_SIZE - 1)))
-    #     maxXStep = int(np.floor(xRange / batchNum))
-    #     XStart = start[0]
-    # 
-    #     heightMapHList = []
-    #     maskHList = []
-    # 
-    #     while XStart < start[0] + xRange:
-    #         step = min(start[0] + xRange - XStart, maxXStep)
-    # 
-    #         ray_origins = ray_origins_ini[XStart: XStart + step, start[1]: start[1] + yRange].copy().reshape((-1, 3)) * self.scale
-    #         ray_ends    = ray_origins_ini[XStart: XStart + step, start[1]: start[1] + yRange].copy().reshape((-1, 3)) * self.scale
-    # 
-    #         ray_origins[:, 2] = bounds[1][2] * self.scale[2]
-    #         ray_ends[:, 2]    = 0
-    #         intersections = p.rayTestBatch(ray_origins, ray_ends, numThreads=16)
-    #         intersections = np.array(intersections, dtype=object)
-    # 
-    #         maskH = intersections[: , 0]
-    #         maskH = np.where(maskH >= 0, 1, 0)
-    # 
-    #         if np.sum(maskH) != 0:
-    #             fractions = intersections[:, 2]
-    #             heightMapH = ray_origins[:, 2] + (ray_ends[:, 2] - ray_origins[:, 2]) * fractions
-    #             heightMapH *= maskH
-    #         else:
-    #             heightMapH = np.zeros(step * yRange)
-    #             heightMapH[:] = bounds[1][2] * self.scale[2]
-    #             maskH[:] = 1
-    # 
-    #         heightMapH = heightMapH.reshape((step, yRange)) / self.scale[2]
-    #         maskH = maskH.reshape((step, yRange))
-    # 
-    #         heightMapHList.append(heightMapH)
-    #         maskHList.append(maskH)
-    #         XStart += maxXStep
-    # 
-    #     heightMapF = np.concatenate(heightMapHList, axis=0)
-    #     maskF = np.concatenate(maskHList, axis=0)
-    #     return heightMapF, maskF
-
     def shot_whole(self):
 
         ray_origins = self.ray_origins.reshape((-1, 3)) * self.scale
@@ -115,30 +72,7 @@ class Space(object):
         heightMapH = heightMapH.reshape((self.rangeX_C, self.rangeY_C)) / self.scale[2]
         self.heightmapC = heightMapH.astype(np.float)
 
-
-    # def place_item(self, bounds, scale): # 这个是截取移动后的heightMap, 和移动前的heightMap不一样的
-    #     # assert scale == 1
-    #     minBoundsInt    = np.floor(np.maximum(bounds[0], [0,0,0])/ self.resolutionH).astype(np.int32)
-    #     maxBoundsInt    = np.ceil(np.minimum(bounds[1], self.bin_dimension) / self.resolutionH).astype(np.int32)
-    #
-    #     boundingSizeInt = maxBoundsInt - minBoundsInt
-    #     rangeX_O, rangeY_O = boundingSizeInt[0], boundingSizeInt[1]
-    #
-    #     heightMapH, maskH = self.shot_heightMap(self.ray_origins, bounds, rangeX_O, rangeY_O, start=minBoundsInt)
-    #
-    #     # Hdraw = np.zeros(heightMapH.shape)
-    #     # Hdraw[:] = heightMapH
-    #     # draw_heatmap(Hdraw)
-    #
-    #     # if np.max(heightMapH) > self.bin_dimension[2]:
-    #     #     return False
-    #
-    #     coorX, coorY = minBoundsInt[0:2]
-    #     self.heightmapC[coorX:coorX + rangeX_O, coorY:coorY + rangeY_O] = \
-    #         np.maximum(self.heightmapC[coorX:coorX + rangeX_O, coorY:coorY + rangeY_O], heightMapH)
-
-
-    def place_item_trimesh(self, mesh, poseT, debugInfo): # 这个是截取移动后的heightMap, 和移动前的heightMap不一样的
+    def place_item_trimesh(self, mesh, poseT, debugInfo):
         meshT = mesh.copy()
         # meshT.apply_scale(scale)
         positionT, orientationT = poseT
@@ -159,20 +93,6 @@ class Space(object):
         self.heightmapC[coorX:coorX + rangeX_O, coorY:coorY + rangeY_O] = \
             np.maximum(self.heightmapC[coorX:coorX + rangeX_O, coorY:coorY + rangeY_O], heightMapH)
 
-        # draw_heatmap(heightMapH)
-        # self.scene.append(meshT)
-        # wholeScene = trimesh.Scene(self.scene)
-        # wholeScene.show()
-
-    # def get_lowest_z(self, next_item_ID, next_item, rotIdx, coordinate):
-    #     boundingSize = next_item[rotIdx].extents
-    #     boundingSizeInt = np.ceil(boundingSize / self.resolutionH).astype(np.int32)
-    #     rangeX_O, rangeY_O = boundingSizeInt[0], boundingSizeInt[1]
-    #     heightMapT, heightMapB, maskH, maskB = self.shotInfo[next_item_ID][rotIdx]  # 这个操作很省运算量，之后也可以考虑用进来
-    #     coorX, coorY = coordinate
-    #     interceptMap = self.heightmapC[coorX: coorX + rangeX_O, coorY: coorY + rangeY_O]
-    #     posZ = np.max((interceptMap - heightMapB) * maskB) # 这里面要把可能为0的部分删去
-    #     return posZ
 
     # 动作设计，还没想好怎么做(感觉这玩意还挺关键的，因为动作空间会很大)
     def get_possible_position(self, next_item_ID, next_item, selectedAction):
@@ -200,18 +120,6 @@ class Space(object):
                     if np.round(posZ + boundingSize[2] - self.bin_dimension[2], decimals=6) <= 0:
                         naiveMask[rotIdx, X, Y] = 1
                     self.posZmap[rotIdx, X, Y] = posZ
-
-
-        # if naiveMask.sum() == 0:
-        #     if selectedAction is not None:
-        #         posZmap = self.posZmap.reshape(-1)
-        #         index = np.argsort(posZmap.reshape(-1))[0:selectedAction]
-        #         naiveMask.reshape(-1)[index] = 1
-        #     else:
-        #         for rotIdx in range(rotNum):
-        #             boundingSize = np.round(next_item[rotIdx].extents, decimals=6)
-        #             rangeX_OH, rangeY_OH = np.ceil(boundingSize[0:2] / self.resolutionH).astype(np.int32)
-        #             naiveMask[rotIdx, 0:self.rangeX_A - rangeX_OH + 1, 0:self.rangeX_A - rangeY_OH + 1] = 1
 
         self.naiveMask = naiveMask.copy()
         invalidIndex = np.where(naiveMask==0)
@@ -317,65 +225,6 @@ class Space(object):
                 index = np.random.randint(len(self.naiveMask.reshape(-1)))
             rotIdx, lx, ly = np.unravel_index(index, self.naiveMask.shape)
         return rotIdx, lx,ly
-
-    # def heuristic_method_old(self, next_item_ID, next_item, resolutionAct, method = 'HM'):
-    #     heuristicC = 1
-    # 
-    #     delta_x = resolutionAct
-    #     delta_y = resolutionAct
-    #     candicadates = []
-    #     rotNum = len(next_item)
-    # 
-    #     for rotIdx in range(rotNum):
-    #         boundingSize = np.round(next_item[rotIdx].extents, decimals=6)
-    #         rangeX_OH, rangeY_OH = np.ceil(boundingSize[0:2] / self.resolutionH).astype(np.int32)
-    #         heightMapT, heightMapB, maskH, maskB = self.shotInfo[next_item_ID][rotIdx]
-    # 
-    #         posX = 0
-    #         while posX <= self.bin_dimension[0] - boundingSize[0]:
-    #             posY = 0
-    #             while posY <= self.bin_dimension[1] - boundingSize[1]:
-    #                 X, Y = int(posX / self.resolutionAct), int(posY / self.resolutionAct)  # 对应heightmap的坐标变化
-    #                 coorX, coorY = int(posX / self.resolutionH), int(posY / self.resolutionH)  # 对应heightmap的坐标变化
-    #                 posZ = np.max((self.heightmapC[coorX: coorX + rangeX_OH, coorY: coorY + rangeY_OH]
-    #                                - heightMapB) * maskB)  # the lowest collision-free Z
-    # 
-    #                 heightmapC_Prime = np.max(
-    #                     ((heightMapT + posZ) * maskH, self.heightmapC[coorX:coorX + rangeX_OH, coorY:coorY + rangeY_OH]), axis=0)
-    #                 # maxHeight = np.max(heightmapC_Prime)
-    #                 maxHeight = boundingSize[2] + posZ
-    #                 # print(maxHeight)
-    #                 if np.around(maxHeight - self.bin_dimension[2], decimals=6) > 0:
-    #                     posY = np.round(delta_y + posY, decimals=3)
-    #                     continue
-    #                 mapSum = np.sum(heightmapC_Prime)
-    #                 scoreHM = heuristicC * (posX + posY) + mapSum * 100
-    #                 scoreDBLF = heuristicC * (posX + posY) + posZ * 100
-    #                 candicadates.append([X, Y, posZ, scoreHM, scoreDBLF, rotIdx])
-    # 
-    #                 posY = np.round(delta_y + posY, decimals=3)
-    # 
-    #             posX = np.round(delta_x + posX, decimals=3)
-    # 
-    #     if len(candicadates) != 0:
-    #         candicadates = np.round(np.array(candicadates), decimals=6)
-    #         if method == 'RANDOM':
-    #             action = candicadates[np.random.randint(0, len(candicadates))]
-    #             return action.astype(np.int)
-    #         elif method == 'DBLF':
-    #             action = candicadates[np.argmin(candicadates[:, 4])]
-    #             return action.astype(np.int)
-    #         elif method == 'HM':
-    #             action = candicadates[np.argmin(candicadates[:, 3])]
-    #             return action.astype(np.int)
-    #         elif method == 'MINZ':
-    #             action = candicadates[np.argmin(candicadates[:, 2])]
-    #             return action.astype(np.int)
-    #         elif method == 'FIRSTFIT':
-    #             action = candicadates[np.argmin(candicadates[:, 0] + candicadates[:, 1])]
-    #             return action.astype(np.int)
-    #     else:
-    #         return None
 
     def heuristic_method(self, next_item_ID, next_item, resolutionAct, method = 'HM'):
         heuristicC = 1
