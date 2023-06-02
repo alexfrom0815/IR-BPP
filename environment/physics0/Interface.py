@@ -42,9 +42,6 @@ class Interface:
         self.objsDynamic = []
         self.g = [0.0, 0.0, -10.0]
         p.setGravity(self.g[0], self.g[1], self.g[2])
-        # p.setPhysicsEngineParameter(numSolverIterations=10)
-        # p.setPhysicsEngineParameter(constraintSolverType=p.CONSTRAINT_SOLVER_LCP_PGS, globalCFM = 0.0001)
-        # p.setPhysicsEngineParameter(constraintSolverType=p.CONSTRAINT_SOLVER_LCP_DANTZIG, globalCFM=0.000001)
         p.setPhysicsEngineParameter(constraintSolverType=p.CONSTRAINT_SOLVER_LCP_PGS, globalCFM = 0.0001, numSolverIterations=10)
 
         if self.visual:
@@ -99,8 +96,6 @@ class Interface:
 
         return positions, orientations
 
-    # 创建bin的mesh
-    # def makeBox(self, bin, color, thick = 0.01):
     def makeBox(self, bin, color, thick = 1):
         box = []
 
@@ -131,7 +126,6 @@ class Interface:
         box.append(back)
         return box
 
-    # 这里设置容器的各种属性
     def addBox(self, bin, scale, shift):
         box = self.makeBox(bin, color = [0.6, 0.3, 0.1, 1])
 
@@ -160,7 +154,6 @@ class Interface:
                                                         fileName=boxPath,
                                                         collisionFramePosition=shift,
                                                         flags = 1,
-                                                        # meshScale=scale
                                                         )
 
             for _ in range(repeat):
@@ -178,8 +171,6 @@ class Interface:
 
                 p.changeDynamics(boxID, -1,
                                  contactProcessingThreshold = 0,
-                                 # contactStiffness=1.0,
-                                 # contactDamping=0.1
                                  )
                 counter += 1
         self.boxNum = counter
@@ -193,26 +184,6 @@ class Interface:
     def adjustHeight(self, newId, height):
         height = height * self.defaultScale[2]
         self.reset_Height(newId, height)
-
-
-    # # 判断物品应该下落到哪个位置，好像这个function我可以改一下
-    # def computeInitialHeight(self, newId):
-    #     minC, maxC = self.get_wraped_AABB(newId)
-    #     height = - minC[2]
-    #
-    #     for id in self.objs:
-    #         if id == newId:
-    #             continue
-    #         else:
-    #             minC2, maxC2 = self.get_wraped_AABB(id)
-    #             if self.overlap2d(minC, maxC, minC2, maxC2):
-    #                 height = max(height, maxC2[2] - minC[2]) # 感觉只用AABB判断高度的话，会有一定程度的下坠
-    #
-    #     #set to server
-    #     position, orientation = p.getBasePositionAndOrientation(newId)
-    #     position = (position[0], position[1], position[2]+height)
-    #     p.resetBasePositionAndOrientation(newId, position, orientation) # 这里的height也有问题
-
 
     def addObject(self, name,
                   targetFLB = [0.0, 0.0, 0.0],
@@ -285,8 +256,6 @@ class Interface:
                          linearDamping = linearDamping,
                          angularDamping = angularDamping,
                          contactProcessingThreshold = 0,
-                         # contactStiffness = 1,
-                         # contactDamping = 0.1
                          )
 
         if density>0:
@@ -337,10 +306,6 @@ class Interface:
                     # print('midC out of bounds', midC)
                     return True, False
 
-                # if np.round(maxC[2] - self.bin[2], decimals=6) > 0:
-                #     # self.disableObject(id, -1.0e2) # Commented out this code for better debug.
-                #     # print('maxC out of bounds', maxC)
-                #     return False, True
 
         return True, True
 
@@ -359,8 +324,6 @@ class Interface:
             if end: break
             batchCounter += 1
             # simulation a batch
-
-
             for i in range(int(batch/dt)):
                 p.stepSimulation()
                 recordForThisTime = []
@@ -390,28 +353,13 @@ class Interface:
             # test
             end = True
             for id in self.objsDynamic:
-                linear, angular = p.getBaseVelocity(id) # 这里是判断有没有终止运动，如果没有的话就再运动一会
-
+                linear, angular = p.getBaseVelocity(id)
                 if linear[0] * linear[0] + linear[1] * linear[1] + linear[2] * linear[2] > linearTolSqr:
                     end = False
                 if angular[0] * angular[0] + angular[1] * angular[1] + angular[2] * angular[2] > angularTolSqr:
                     end = False
 
-                # minC, maxC = self.get_wraped_AABB(id)
-                #
-                # midC = (maxC - minC) / 2 + minC
-                # if midC[0] <= 0 or midC[0] - self.bin[0] >= 0 or \
-                #    midC[1] <= 0 or midC[1] - self.bin[1] >= 0 or \
-                #    midC[2] <= 0:
-                #     # print('midC out of bounds', midC)
-                #     return True, False
-
-                # if np.round(maxC[2] - self.bin[2], decimals=6) > 0:
-                #     # self.disableObject(id, -1.0e2) # Commented out this code for better debug.
-                #     # print('maxC out of bounds', maxC)
-                #     return False, True
         self.disableAllObject()
-        # return True, True
 
 
     def simulateHeight(self, id):
@@ -420,11 +368,10 @@ class Interface:
                 return False, True
         return True, True
 
-    # 只是修改一下高度的话, 这里就改, 这里是z不是shift, 所以需要改一下
     def disableObject(self, id, targetZ = None):
         if targetZ is not None:
             self.reset_Height(id, targetZ)
-        p.changeDynamics(id, -1, mass = 0.0) # 这里的mass有问题
+        p.changeDynamics(id, -1, mass = 0.0)
         self.objsDynamic.remove(id)
 
     def enableObjects(self):
@@ -434,7 +381,7 @@ class Interface:
 
     def disableAllObject(self):
         for id in self.objsDynamic:
-            p.changeDynamics(id, -1, mass=0.0)  # 这里的mass有问题
+            p.changeDynamics(id, -1, mass=0.0)
             self.objsDynamic.remove(id)
 
     def cameraForRecord(self):
@@ -455,41 +402,6 @@ class Interface:
                                      cameraTargetPosition = target)
         return dist, yaw, pitch, target
 
-    #
-    # def get_wraped_AABB(self, id, inner = True):
-    #     bounds = np.round(p.getAABB(id), decimals=6)
-    #     bounds[0] += self.AABBCompensation
-    #     bounds[1] -= self.AABBCompensation
-    #     if not inner:
-    #         bounds = bounds / self.defaultScale
-    #     return bounds
-    # 
-    # # 读出指定的shape的minC的位置
-    # def get_Wraped_Position_And_Orientation(self, id, inner = True, getPosBase = False):
-    #     positionBase, orientationT = p.getBasePositionAndOrientation(id)
-    # 
-    #     positionFLB = self.get_wraped_AABB(id, inner)[0]
-    #     returnList = [np.array(positionFLB), np.array(orientationT)]
-    # 
-    #     if getPosBase:
-    #         returnList.append(np.array(positionBase))
-    # 
-    #     return returnList
-    # 
-    # # 要对旋转后的偏移进行调整
-    # def reset_Wraped_Position_And_Orientation(self, id, targetFLB, targetOritation = None):
-    #     if targetOritation is not None:
-    #         p.resetBasePositionAndOrientation(id, [-100,-100,-100], targetOritation)
-    #     positionFLB, orientationT, positionBase = self.get_Wraped_Position_And_Orientation(id, inner=True, getPosBase=True)
-    #     positionTarget = targetFLB - positionFLB + positionBase
-    #     p.resetBasePositionAndOrientation(id, positionTarget, orientationT)
-    # 
-    # def reset_Height(self, id, targetHeight):
-    #     positionFLB, orientationT, positionBase = self.get_Wraped_Position_And_Orientation(id, inner=True, getPosBase=True)
-    #     positionHeight = targetHeight - positionFLB[2] + positionBase[2]
-    #     p.resetBasePositionAndOrientation(id, [*positionBase[0:2], positionHeight], orientationT)
-
-
     def get_wraped_AABB(self, id, inner = True):
         return self.get_trimesh_AABB(id, inner)
 
@@ -497,14 +409,12 @@ class Interface:
         return self.get_trimesh_Position_And_Orientation(id, inner, getPosBase)
 
 
-    # 要对旋转后的偏移进行调整
     def reset_Wraped_Position_And_Orientation(self, id, targetFLB, targetOrientation = None):
         self.reset_trimesh_Position_And_Orientation(id, targetFLB, targetOrientation)
 
 
     def reset_Height(self, id, targetHeight):
         self.reset_trimesh_height(id, targetHeight)
-
 
     def get_trimesh_AABB(self, id, inner = True):
         positionBase, orientationT = p.getBasePositionAndOrientation(id)
@@ -516,7 +426,6 @@ class Interface:
             bounds = bounds / self.defaultScale
         return bounds
 
-    # 读出指定的shape的minC的位置
     def get_trimesh_Position_And_Orientation(self, id, inner = True, getPosBase = False):
 
         positionBase, orientationT = p.getBasePositionAndOrientation(id)
@@ -535,7 +444,6 @@ class Interface:
 
         return returnList
 
-    # 要对旋转后的偏移进行调整
     def reset_trimesh_Position_And_Orientation(self, id, targetFLB, targetOrientation = None):
         if targetOrientation is not None:
             p.resetBasePositionAndOrientation(id, [-100,-100,-100], targetOrientation)

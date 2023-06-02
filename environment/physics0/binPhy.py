@@ -9,15 +9,9 @@ import transforms3d
 from .Interface import Interface
 from .IRcreator import RandomItemCreator, LoadItemCreator, RandomInstanceCreator, RandomCateCreator
 from .space import Space
-from .MetricProblem import MetricProblem
 import threading
 from .cvTools import getConvexHullActions
 import random
-
-def stabilityScore(score, finished, I):
-    M = MetricProblem(I)
-    score[0] =  M.stabilityScore()
-    finished[0] = True
 
 class PackingGame(gym.Env):
     def __init__(self,
@@ -442,10 +436,6 @@ class PackingGame(gym.Env):
         if np.sum(naiveMask) == 0:
             return False
         return True
-
-    def stability_score(self):
-        M = MetricProblem(self.interface)
-        return M.stabilityScore()
 
     # Note the transform between Ra coord and Rh coord
     def step(self, action):

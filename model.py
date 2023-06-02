@@ -93,15 +93,6 @@ class DQN(nn.Module):
             init_(nn.Conv2d(16, 1, 3, stride=1, padding=1)),
             nn.LeakyReLU())
 
-        # self.maskEncoder = nn.Sequential(
-        #     init_(nn.Conv2d(self.rotNum, 16, 3, stride=1, padding=1)),
-        #     nn.LeakyReLU(),
-        #     init_(nn.Conv2d(16, 32, 3, stride=1, padding=1)),
-        #     nn.LeakyReLU(),
-        #     init_(nn.Conv2d(32, 16, 3, stride=1, padding=1)),
-        #     nn.LeakyReLU(),
-        #     init_(nn.Conv2d(16, 1, 3, stride=1, padding=1)),
-        #     nn.LeakyReLU())
 
         self.shapeEncoder = nn.Sequential()
         if self.trianglePre:
@@ -121,19 +112,10 @@ class DQN(nn.Module):
             # # Encode a mesh into mesh feature.
 
             if self.preEncoder:
-                # self.shapeEncoder = ResnetPointnet()
-                # state_dict = torch.load(args.encoderPath)
-                # self.shapeEncoder.load_state_dict(state_dict)
-                # self.shapeEncoder = ResnetPointnet().load_state_dict(torch.load(args.encoderPath))
-                # for param in self.shapeEncoder.parameters():
-                #     param.requires_grad = False
+                assert False, 'forbidden'
                 self.shapeEncoder = nn.Sequential()
                 self.shapeEncoder.add_module('linear1', init_(nn.Linear(512, int(zDim/2))))
                 self.shapeEncoder.add_module('relu1', nn.LeakyReLU())
-                # self.shapeEncoder = nn.Sequential()
-                # self.shapeEncoder.add_module('pre1', pretrained)
-                # self.shapeEncoder.add_module('linear2', init_(nn.Linear(512, int(zDim/2))))
-                # self.shapeEncoder.add_module('relu2', nn.LeakyReLU())
             elif self.indexPresentation:
                 self.shapeEncoder = nn.Sequential()
                 self.shapeEncoder.add_module('linear1', init_(nn.Linear(128, int(zDim/2))))

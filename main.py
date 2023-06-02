@@ -5,7 +5,7 @@ import os
 import numpy as np
 import torch
 from agent import Agent
-from newMemory import ReplayMemory
+from Memory import ReplayMemory
 from tensorboardX import SummaryWriter
 import time
 import config

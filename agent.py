@@ -92,8 +92,6 @@ class Agent():
       idxs.append(idx), states.append(state), actions.append(action), returns.append(ret)
       next_states.append(next_state), nonterminals.append(nonterminal), weights.append(weight)
 
-    # print('runhere2-2')
-
     states = torch.cat(states, 0)
     actions = torch.cat(actions, 0)
     returns = torch.cat(returns, 0)

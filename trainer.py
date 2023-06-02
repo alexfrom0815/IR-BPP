@@ -6,38 +6,8 @@ from tqdm import trange
 from collections import deque
 from tensorboardX import SummaryWriter
 import torch.multiprocessing as mp
-
 np.set_printoptions(threshold=np.inf)
 import time
-
-# def learningPara(T, priority_weight_increase, model_save_path, dqn, mem, timeStr, args, counter):
-#     timeStep = T
-#     log_writer_path = './logs/runs/{}'.format('IR-' + timeStr + '-loss')
-#     if not os.path.exists(log_writer_path):
-#       os.makedirs(log_writer_path)
-#     writer = SummaryWriter(log_writer_path)
-#     learnCounter = T
-#     targetCounter = T
-#     logCounter = T
-#     while True:
-#         for i in range(len(mem)):
-#             mem[i].priority_weight = min(mem[i].priority_weight + priority_weight_increase, 1)  # Anneal importance sampling weight β to 1
-#
-#         # if timeStep % args.replay_frequency == 0:
-#         if counter.value - learnCounter > args.replay_frequency:
-#             loss = dqn.learn(mem)  # Train with n-step distributional double-Q learning
-#             learnCounter = counter.value
-#         # Update target network
-#         # if timeStep % args.target_update == 0:
-#         if counter.value - targetCounter > args.target_update:
-#             dqn.update_target_net()
-#             targetCounter = counter.value
-#         # Checkpoint the network #
-#         if (args.checkpoint_interval != 0) and (timeStep % args.checkpoint_interval == 0):
-#             dqn.save(model_save_path, 'checkpoint{}.pt'.format(timeStep // args.checkpoint_interval))
-#         if timeStep % args.print_log_interval == 0:
-#             writer.add_scalar("Training/Value loss", loss.mean().item(), timeStep)
-#         timeStep += 1
 
 def learningPara(T, priority_weight_increase, model_save_path, dqn, mem, timeStr, args, counter, lock, sub_time_str):
     log_writer_path = './logs/runs/{}'.format('IR-' + timeStr + '-loss')
@@ -218,10 +188,6 @@ class trainer(object):
                 self.dqn.reset_noise()  # Draw a new set of noisy weights
 
             mask = get_mask_from_state(state, args, args.previewNum)
-            # if args.shapePreType == 'SurfacePointsRandom' or args.shapePreType == 'SurfacePointsEncode':
-            #     indices = np.random.randint(100000, size= args.samplePointsNum).reshape((1,-1))
-            #     indices = torch.from_numpy(np.repeat(indices, repeats=len(state), axis=0)).to(args.device)
-            #     state = torch.cat([state, indices], dim=1)
             action = self.dqn.act(state, mask)  # Choose an action greedily (with noisy weights)
 
             if args.heuristicExplore:
@@ -296,12 +262,6 @@ class trainer(object):
                             savePath = os.path.join(memory_save_path, 'memory{}'.format(i))
                             save_memory(self.mem[i], savePath, args.disable_bzip_memory)
 
-            # if T % args.evaluation_interval == 0:
-            #     if args.distributed: lock.value = True
-            #     avg_reward, avg_length = test(args,  self.dqn, timeStr = self.timeStr, times=str(int(T//args.evaluation_interval)))  # Test
-            #     if args.distributed: lock.value = False
-            #     self.writer.add_scalar('Metric/Eval Reward', avg_reward, T)
-            #     self.writer.add_scalar('Metric/Eval Length', avg_length, T)
 
             state = next_state
             if len(episode_rewards)!= 0:
