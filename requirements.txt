@@ -1,0 +1,13 @@
+# python==3.7.7
+numpy==1.21.3
+# torch==1.13.0
+trimesh==3.12.3
+gym==0.13.0
+matplotlib==3.3.1
+transforms3d==0.3.1
+pybullet==3.2.1
+tensorboardX
+tqdm==4.48.2
+rtree==0.9.7
+cvxpy==1.2.0
+opencv-contrib-python==4.4.0.46
