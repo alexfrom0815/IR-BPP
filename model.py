@@ -65,9 +65,6 @@ class DQN(nn.Module):
     self.MapLength = int(args.bin_dimension[0] / args.resolutionH)
     self.ActLength = int(args.bin_dimension[0] / args.resolutionA)
     self.physics = False if args.envName != 'Physics-v0' else True
-    self.lineAction = args.actionType == 'LineAction'
-    self.rotAction = args.actionType == 'RotAction'
-    self.heuAction = args.actionType == 'HeuAction'
     self.elementWise = args.elementWise
 
     self.args = args
@@ -77,214 +74,109 @@ class DQN(nn.Module):
     self.output_size = zDim * 2
     self.basicFeatureSize = int(zDim / 2)
 
-    if self.heightMap and not self.physics:
-        self.heightEncoder = nn.Sequential(
-            init_(nn.Conv2d(1, 16, 3, stride=1, padding=1)),
-            nn.LeakyReLU(),
-            init_(nn.Conv2d(16, 32, 3, stride=1, padding=1)),
-            nn.LeakyReLU(),
-            init_(nn.Conv2d(32, 16, 3, stride=1, padding=1)),
-            nn.LeakyReLU(),
-            init_(nn.Conv2d(16, 1, 3, stride=1, padding=1)),
-            nn.LeakyReLU())
+    self.shapeEncoder = nn.Sequential()
+    self.shapeEncoder.add_module('linear1', init_(nn.Linear(3, 128)))
+    self.shapeEncoder.add_module('relu2', nn.LeakyReLU())
+    self.shapeEncoder.add_module('linear3', init_(nn.Linear(128, int(zDim/2))))
+    self.shapeEncoder.add_module('relu3', nn.LeakyReLU())
 
+    transLen = 7 if self.physics else 16
+    # Encode the mesh translation.
+    if self.elementWise:
+        self.transEncoder = nn.Sequential()
+        self.transEncoder.add_module('linear1', init_(nn.Linear(transLen, 128)))
+        self.transEncoder.add_module('relu2', nn.LeakyReLU())
+        self.transEncoder.add_module('linear3', init_(nn.Linear(128, int(zDim / 2))))
+        self.transEncoder.add_module('relu3', nn.LeakyReLU())
 
-        self.shapeEncoder = nn.Sequential()
-        self.shapeEncoder.add_module('linear1', init_(nn.Linear(3, 128)))
-        self.shapeEncoder.add_module('relu2', nn.LeakyReLU())
-        self.shapeEncoder.add_module('linear3', init_(nn.Linear(128, int(zDim/2))))
-        self.shapeEncoder.add_module('relu3', nn.LeakyReLU())
+    if self.heightMap:
 
-        self.simplify = nn.Sequential()
-        self.simplify.add_module('linear1', init_(nn.Linear(zDim, int(zDim/2))))
-        self.simplify.add_module('relu1', nn.LeakyReLU())
-
-    else:
-        if not self.boundingBoxVec:
-            # # Encode a mesh into mesh feature.
-
-            if self.args.shapePreType == 'SurfacePointsEncode':
-                self.shapeEncoder = ResnetPointnet(c_dim=128)
-                state_dict = torch.load(args.encoderPath)
-                self.shapeEncoder.load_state_dict(state_dict)
-                for param in self.shapeEncoder.parameters():
-                    param.requires_grad = False
+        if args.resolutionH == 0.01:
+            self.heightEncoder = nn.Sequential()
+            if np.isclose(args.bin_dimension[0], 0.4):
+                self.heightEncoder.add_module('conv1', init_(nn.Conv2d(1, 16, 4, stride=2, padding=1))) # 40 -> 20
+                self.heightEncoder.add_module('relu1', nn.LeakyReLU())
+                self.heightEncoder.add_module('conv2', init_(nn.Conv2d(16, 32, 6, stride=2))) # 20 -> 8
             else:
-                print('run here')
-                self.shapeEncoder = nn.Sequential()
-                self.shapeEncoder.add_module('linear1', init_(nn.Linear(3, 128)))
-                self.shapeEncoder.add_module('relu2', nn.LeakyReLU())
-                self.shapeEncoder.add_module('linear3', init_(nn.Linear(128, int(zDim/2))))
-                self.shapeEncoder.add_module('relu3', nn.LeakyReLU())
-
-            transLen = 7 if self.physics else 16
-            # Encode the mesh translation.
+                self.heightEncoder.add_module('conv1', init_(nn.Conv2d(1, 16, 4, stride=2, padding=1))) # 32 -> 16
+                self.heightEncoder.add_module('relu1', nn.LeakyReLU())
+                self.heightEncoder.add_module('conv2', init_(nn.Conv2d(16, 32, 4, stride=2, padding=1))) # 16 -> 8
+            self.heightEncoder.add_module('relu2', nn.LeakyReLU())
             if self.elementWise:
-                self.transEncoder = nn.Sequential()
-                self.transEncoder.add_module('linear1', init_(nn.Linear(transLen, 128)))
-                self.transEncoder.add_module('relu2', nn.LeakyReLU())
-                self.transEncoder.add_module('linear3', init_(nn.Linear(128, int(zDim / 2))))
-                self.transEncoder.add_module('relu3', nn.LeakyReLU())
+                self.heightEncoder.add_module('conv3', init_(nn.Conv2d(32, 2, 3, stride=1, padding=1))) # 16 -> 8
+            else:
+                self.heightEncoder.add_module('conv3', init_(nn.Conv2d(32, 4, 3, stride=1, padding=1))) # 16 -> 8
+            self.heightEncoder.add_module('relu3', nn.LeakyReLU())
 
-            if self.heightMap:
+        elif args.resolutionH == 0.005:
+            self.heightEncoder = nn.Sequential(
+                init_(nn.Conv2d(1, 16, 4, stride=2, padding=2)),  # 64 -> 32
+                nn.LeakyReLU(),
+                init_(nn.Conv2d(16, 32, 4, stride=2, padding=1)), # 32 -> 16
+                nn.LeakyReLU(),
+                init_(nn.Conv2d(32, 1, 3, stride=1, padding=1)),  # 16 -> 16
+                nn.LeakyReLU())
+        elif args.resolutionH == 0.002:
+            self.heightEncoder = nn.Sequential(
+                init_(nn.Conv2d(1, 16, 9, stride=5, padding=2)),  # 160 -> 32
+                nn.LeakyReLU(),
+                init_(nn.Conv2d(16, 32, 4, stride=2, padding=1)),  # 32 -> 16
+                nn.LeakyReLU(),
+                init_(nn.Conv2d(32, 1, 3, stride=1, padding=1)),  # 16 -> 16
+                nn.LeakyReLU())
 
-                if args.resolutionH == 0.01:
-                    self.heightEncoder = nn.Sequential()
-                    if np.isclose(args.bin_dimension[0], 0.4):
-                        self.heightEncoder.add_module('conv1', init_(nn.Conv2d(1, 16, 4, stride=2, padding=1))) # 40 -> 20
-                        self.heightEncoder.add_module('relu1', nn.LeakyReLU())
-                        self.heightEncoder.add_module('conv2', init_(nn.Conv2d(16, 32, 6, stride=2))) # 20 -> 8
-                    else:
-                        self.heightEncoder.add_module('conv1', init_(nn.Conv2d(1, 16, 4, stride=2, padding=1))) # 32 -> 16
-                        self.heightEncoder.add_module('relu1', nn.LeakyReLU())
-                        self.heightEncoder.add_module('conv2', init_(nn.Conv2d(16, 32, 4, stride=2, padding=1))) # 16 -> 8
-                    self.heightEncoder.add_module('relu2', nn.LeakyReLU())
-                    if self.elementWise:
-                        self.heightEncoder.add_module('conv3', init_(nn.Conv2d(32, 2, 3, stride=1, padding=1))) # 16 -> 8
-                    else:
-                        self.heightEncoder.add_module('conv3', init_(nn.Conv2d(32, 4, 3, stride=1, padding=1))) # 16 -> 8
-                    self.heightEncoder.add_module('relu3', nn.LeakyReLU())
-
-                elif args.resolutionH == 0.005:
-                    self.heightEncoder = nn.Sequential(
-                        init_(nn.Conv2d(1, 16, 4, stride=2, padding=2)),  # 64 -> 32
-                        nn.LeakyReLU(),
-                        init_(nn.Conv2d(16, 32, 4, stride=2, padding=1)), # 32 -> 16
-                        nn.LeakyReLU(),
-                        init_(nn.Conv2d(32, 1, 3, stride=1, padding=1)),  # 16 -> 16
-                        nn.LeakyReLU())
-                elif args.resolutionH == 0.002:
-                    self.heightEncoder = nn.Sequential(
-                        init_(nn.Conv2d(1, 16, 9, stride=5, padding=2)),  # 160 -> 32
-                        nn.LeakyReLU(),
-                        init_(nn.Conv2d(16, 32, 4, stride=2, padding=1)),  # 32 -> 16
-                        nn.LeakyReLU(),
-                        init_(nn.Conv2d(32, 1, 3, stride=1, padding=1)),  # 16 -> 16
-                        nn.LeakyReLU())
-
-                if self.elementWise:
-                    self.shorter = nn.Sequential()
-                    self.shorter.add_module('linear1', init_(nn.Linear(zDim, int(zDim / 2))))
-                    self.shorter.add_module('relu1', nn.LeakyReLU())
-
-        else:
-            self.shapeEncoder = nn.Sequential()
-            self.shapeEncoder.add_module('linear1', init_(nn.Linear(3, 128)))
-            # self.shapeEncoder.add_module('linear1', init_(nn.Linear(6, 128)))
-            self.shapeEncoder.add_module('relu1', nn.LeakyReLU())
-            self.shapeEncoder.add_module('linear2', init_(nn.Linear(128, int(zDim/2) )))
-            # self.shapeEncoder.add_module('linear2', init_(nn.Linear(128, zDim )))
-            self.shapeEncoder.add_module('relu2', nn.LeakyReLU())
-            #
-            self.onemoreEncoder = nn.Sequential()
-            self.onemoreEncoder.add_module('linear1', init_(nn.Linear(zDim, zDim)))
-            self.onemoreEncoder.add_module('relu1', nn.LeakyReLU())
-
-            self.nextshapeEncoder = nn.Sequential()
-            self.nextshapeEncoder.add_module('linear1', init_(nn.Linear(6, 128)))
-            self.nextshapeEncoder.add_module('relu1', nn.LeakyReLU())
-            self.nextshapeEncoder.add_module('linear2', init_(nn.Linear(128, int(zDim / 2))))
-            self.nextshapeEncoder.add_module('relu2', nn.LeakyReLU())
-
-            self.transEncoder = nn.Sequential()
-            self.transEncoder.add_module('linear1', init_(nn.Linear(16, 128)))
-            self.transEncoder.add_module('relu2', nn.LeakyReLU())
-            self.transEncoder.add_module('linear3', init_(nn.Linear(128, int(zDim / 2))))
-            self.transEncoder.add_module('relu3', nn.LeakyReLU())
-
-        # # Graph attention model
         if self.elementWise:
-            n_heads = 1
-            n_layers = 1
-            graph_size = args.packed_holder
-            # Use graph attention network to encode the packed items.
-            self.gatherShape = GraphAttentionEncoder(
-              n_heads=n_heads,
-              embed_dim=zDim,
-              n_layers=n_layers,
-              graph_size=graph_size,
-              feed_forward_hidden=256)
+            self.shorter = nn.Sequential()
+            self.shorter.add_module('linear1', init_(nn.Linear(zDim, int(zDim / 2))))
+            self.shorter.add_module('relu1', nn.LeakyReLU())
 
-        if args.resolutionA == 0.04:
-            self.maskEncoder = nn.Sequential(
-                init_(nn.Conv2d(self.rotNum,  32,  3, stride=1, padding=1)), # 8 -> 8
-                nn.LeakyReLU(),
-                init_(nn.Conv2d(32, 32, 3, stride=1, padding=1)),  # 8 -> 8
-                nn.LeakyReLU(),
-                init_(nn.Conv2d(32, 2,  3, stride=1, padding=1)),
-                nn.LeakyReLU())
-        elif args.resolutionA == 0.02:
-            self.maskEncoder = nn.Sequential(
-                init_(nn.Conv2d(self.rotNum,  32,  3, stride=1, padding=1)), # 16 -> 16
-                nn.LeakyReLU(),
-                init_(nn.Conv2d(32, 32, 4, stride=2, padding=1)),  # 16 -> 8
-                nn.LeakyReLU(),
-                init_(nn.Conv2d(32, 2,  3, stride=1, padding=1)),
-                nn.LeakyReLU())
-        elif  args.resolutionA == 0.01:
-            self.maskEncoder = nn.Sequential(
-                init_(nn.Conv2d(self.rotNum,  32,  4, stride=2, padding=1)), # 32 -> 16
-                nn.LeakyReLU(),
-                init_(nn.Conv2d(32, 32, 4, stride=2, padding=1)),  # 16 -> 8
-                nn.LeakyReLU(),
-                init_(nn.Conv2d(32, 2,  3, stride=1, padding=1)),
-                nn.LeakyReLU())
+
+
+    # # Graph attention model
+    if self.elementWise:
+        n_heads = 1
+        n_layers = 1
+        graph_size = args.packed_holder
+        # Use graph attention network to encode the packed items.
+        self.gatherShape = GraphAttentionEncoder(
+          n_heads=n_heads,
+          embed_dim=zDim,
+          n_layers=n_layers,
+          graph_size=graph_size,
+          feed_forward_hidden=256)
+
+    if args.resolutionA == 0.04:
+        self.maskEncoder = nn.Sequential(
+            init_(nn.Conv2d(self.rotNum,  32,  3, stride=1, padding=1)), # 8 -> 8
+            nn.LeakyReLU(),
+            init_(nn.Conv2d(32, 32, 3, stride=1, padding=1)),  # 8 -> 8
+            nn.LeakyReLU(),
+            init_(nn.Conv2d(32, 2,  3, stride=1, padding=1)),
+            nn.LeakyReLU())
+    elif args.resolutionA == 0.02:
+        self.maskEncoder = nn.Sequential(
+            init_(nn.Conv2d(self.rotNum,  32,  3, stride=1, padding=1)), # 16 -> 16
+            nn.LeakyReLU(),
+            init_(nn.Conv2d(32, 32, 4, stride=2, padding=1)),  # 16 -> 8
+            nn.LeakyReLU(),
+            init_(nn.Conv2d(32, 2,  3, stride=1, padding=1)),
+            nn.LeakyReLU())
+    elif  args.resolutionA == 0.01:
+        self.maskEncoder = nn.Sequential(
+            init_(nn.Conv2d(self.rotNum,  32,  4, stride=2, padding=1)), # 32 -> 16
+            nn.LeakyReLU(),
+            init_(nn.Conv2d(32, 32, 4, stride=2, padding=1)),  # 16 -> 8
+            nn.LeakyReLU(),
+            init_(nn.Conv2d(32, 2,  3, stride=1, padding=1)),
+            nn.LeakyReLU())
 
     self.fc_h_v = NoisyLinear(self.output_size, args.hidden_size, std_init=args.noisy_std)
     self.fc_h_a = NoisyLinear(self.output_size, args.hidden_size, std_init=args.noisy_std)
     self.fc_z_v = NoisyLinear(args.hidden_size, self.atoms, std_init=args.noisy_std)
     self.fc_z_a = NoisyLinear(args.hidden_size, action_space * self.atoms, std_init=args.noisy_std)
 
-  def decode_mesh(self, observation):
-      batchSize = observation.shape[0]
-      observation = observation.reshape((batchSize, -1))
-      packed_items = observation[:, 0:self.packed_holder * 20].reshape((batchSize, -1, 20))
-      next_item = observation[:, self.packed_holder * 20:(self.packed_holder + 1) * 20].reshape((batchSize, 20))
-      masks = observation[:, (self.packed_holder + 1) * 20:]
-      return packed_items, next_item, masks
 
-  def decode_element(self, observation):
-      batchSize = observation.shape[0]
-      observation = observation.reshape((batchSize, -1))
-      packed_items = observation[:, 0:self.packed_holder * 9].reshape((batchSize, -1, 9))
-      packed_items = packed_items[:,:,0:6]
-      next_item = observation[:, self.packed_holder * 9:(self.packed_holder + 1) * 9].reshape((batchSize, 9))
-      next_item = next_item[:, 0:6]
-      masks = observation[:, (self.packed_holder + 1) * 9:]
-      return packed_items, next_item, masks
 
-  def decode_element_in_mesh_style(self, observation):
-
-      batchSize   = observation.shape[0]
-      observation = observation.reshape((batchSize, -1))
-      packed_items = observation[:, 0:self.packed_holder * 9].reshape((batchSize, -1, 9))
-
-      packed_items_dimension = packed_items[:,:,0:3]
-      translation = packed_items[:,:,3:6]
-      packed_items_translation = torch.zeros((batchSize, packed_items.shape[1], 16)).to(self.args.device)
-      packed_items_translation[:,:,0] = 1
-      packed_items_translation[:,:,5] = 1
-      packed_items_translation[:,:,10] = 1
-      packed_items_translation[:,:,15] = 1
-      packed_items_translation[:,:,3] = translation[:,:,0]
-      packed_items_translation[:,:,7] = translation[:,:,1]
-      packed_items_translation[:,:,11] = translation[:,:,2]
-
-      next_item = observation[:, self.packed_holder * 9:(self.packed_holder + 1) * 9].reshape((batchSize, 9))
-      next_item = next_item[:, 3:6]
-      masks = observation[:, (self.packed_holder + 1) * 9:]
-
-      return packed_items_dimension, packed_items_translation, next_item, masks
-
-  def decode_heightMap(self, observation):
-      batchSize = observation.shape[0]
-
-      observation = observation.reshape((batchSize, -1))
-      masks = observation[:, 0:self.action_space].reshape((batchSize, self.action_space))
-      next_item = observation[:, self.action_space + self.heightMapSize : ].reshape((batchSize, 20))
-      heightMap = observation[:, self.action_space : self.action_space + self.heightMapSize]
-
-      return heightMap, next_item, masks
 
   def decode_physic_only_with_heightmap(self, observation):
       batchSize = observation.shape[0]
@@ -299,15 +191,11 @@ class DQN(nn.Module):
 
       next_item, masks, heightMap = self.decode_physic_only_with_heightmap(x)
       heightMap = heightMap.reshape((batchSize, 1, self.MapLength, self.MapLength))
-      if self.lineAction or self.rotAction or self.heuAction:
-        masks = masks.reshape((batchSize, -1))
-      else:
-        masks = masks.reshape((batchSize, self.rotNum, self.ActLength, self.ActLength))
-
+      masks = masks.reshape((batchSize, self.rotNum, self.ActLength, self.ActLength))
       next_item_ID = next_item[:, 0].long()
-      if self.args.shapePreType == 'SurfacePointsRandom' or self.args.shapePreType == 'SurfacePointsEncode':
+      if self.args.shapePreType == 'SurfacePointsRandom':
           nextShape = self.shapeArray[next_item_ID]
-          indices = np.random.randint(self.shapeArray.shape[1], size=self.args.samplePointsNum)  # 这里是不是最好是不重复的元素啊
+          indices = np.random.randint(self.shapeArray.shape[1], size=self.args.samplePointsNum)
           nextShape = nextShape[:, indices].to(self.args.device)
       else:
           nextShape = self.shapeArray[next_item_ID, 0].to(self.args.device)
@@ -315,18 +203,10 @@ class DQN(nn.Module):
       map_feature = self.heightEncoder(heightMap).reshape((batchSize, -1))
 
       assert not self.preEncoder
-      if  self.args.shapePreType == 'SurfacePointsEncode':
-          self.shapeEncoder.eval()
-          shape_feature = self.shapeEncoder(nextShape)
-          shape_feature = F.normalize(shape_feature, dim=1)
-      else:
-          shape_feature = self.shapeEncoder(nextShape)
-          shape_feature = torch.max(shape_feature, dim=1)[0]
-
+      shape_feature = self.shapeEncoder(nextShape)
+      shape_feature = torch.max(shape_feature, dim=1)[0]
       mask_feature = self.maskEncoder(masks).reshape((batchSize, -1))
-
       x = torch.cat([map_feature, shape_feature, mask_feature], dim=1)
-
       return x
 
 
@@ -391,8 +271,6 @@ class DQNP(nn.Module):
     self.physics = False if args.envName != 'Physics-v0' else True
     self.elementWise = args.elementWise
 
-    self.trianglePre = args.shapePreType == 'Triangle'
-    self.indexPresentation = args.shapePreType == 'Index'
     self.preEncoder = args.shapePreType == 'PreTrain'
     self.SurfacePointsPre = args.shapePreType == 'SurfacePoints'
 
@@ -505,8 +383,7 @@ class DQNP(nn.Module):
           rotIdx = torch.zeros_like(shapeIdx).long()
           next_k_shapes = self.shapeArray[shapeIdx, rotIdx].float().to(self.args.device)
       shape_feature = self.shapeEncoder(next_k_shapes)
-      if not self.preEncoder:
-        shape_feature = torch.max(shape_feature, dim=1)[0]
+      shape_feature = torch.max(shape_feature, dim=1)[0]
 
       init_embedding = torch.cat((shape_feature.reshape(batchSize, candidates_size, -1),
                                   map_feature.repeat((1, candidates_size)).reshape(batchSize, candidates_size, -1)), dim=2).view(batchSize * candidates_size, -1)
