@@ -725,33 +725,11 @@ class DQNP(nn.Module):
             init_(nn.Conv2d(32, 1, 3, stride=1, padding=1)),  # 16 -> 16
             nn.LeakyReLU())
 
-    if self.preEncoder:
-        self.shapeEncoder = nn.Sequential()
-        self.shapeEncoder.add_module('linear1', init_(nn.Linear(512, 128)))
-        self.shapeEncoder.add_module('relu1', nn.LeakyReLU())
-    elif self.indexPresentation:
-        self.shapeEncoder = nn.Sequential()
-        self.shapeEncoder.add_module('linear1', init_(nn.Linear(128, int(zDim / 2))))
-        self.shapeEncoder.add_module('relu1', nn.LeakyReLU())
-        assert False
-    elif self.args.shapePreType == 'SurfacePointsEncode':
-        self.shapeEncoder = ResnetPointnet(c_dim=128)
-        if args.encoderPath is not None:
-            print('Load encoder from', args.encoderPath)
-            state_dict = torch.load(args.encoderPath, map_location='cpu')
-            self.shapeEncoder.load_state_dict(state_dict)
-        for param in self.shapeEncoder.parameters():
-            param.requires_grad = False
-        self.shapeEncoder.eval()
-    else:
-        self.shapeEncoder = nn.Sequential()
-        if self.trianglePre:
-            self.shapeEncoder.add_module('linear1', init_(nn.Linear(12, 128)))
-        else:
-            self.shapeEncoder.add_module('linear1', init_(nn.Linear(3, 128)))
-        self.shapeEncoder.add_module('relu1', nn.LeakyReLU())
-        self.shapeEncoder.add_module('linear2', init_(nn.Linear(128, 128)))
-        self.shapeEncoder.add_module('relu2', nn.LeakyReLU())
+    self.shapeEncoder = nn.Sequential()
+    self.shapeEncoder.add_module('linear1', init_(nn.Linear(3, 128)))
+    self.shapeEncoder.add_module('relu1', nn.LeakyReLU())
+    self.shapeEncoder.add_module('linear2', init_(nn.Linear(128, 128)))
+    self.shapeEncoder.add_module('relu2', nn.LeakyReLU())
 
     self.init_ems_embed = nn.Sequential(
         init_(nn.Linear(4, 32)),
@@ -761,7 +739,6 @@ class DQNP(nn.Module):
     self.embedding_dim = 128
     self.oneMore = nn.Sequential(
         init_(nn.Linear(512, 256)),
-        # init_(nn.Linear(640, 256)),
         nn.LeakyReLU(),
         init_(nn.Linear(256, self.embedding_dim)))
 
@@ -782,8 +759,6 @@ class DQNP(nn.Module):
     self.fc_h_v = NoisyLinear(self.embedding_dim, args.hidden_size, std_init=args.noisy_std)
     self.fc_h_a = NoisyLinear(self.embedding_dim, args.hidden_size, std_init=args.noisy_std)
     self.fc_z_v = NoisyLinear(args.hidden_size, self.atoms, std_init=args.noisy_std)
-    # This one should be changed.
-    # self.fc_z_a = NoisyLinearP(args.hidden_size, action_space * self.atoms, std_init=args.noisy_std)
     self.fc_z_a = NoisyLinear(args.hidden_size, self.atoms, std_init=args.noisy_std)
 
   def updateShapeArray(self):
@@ -825,13 +800,9 @@ class DQNP(nn.Module):
           nextShape = self.shapeArray[next_item_ID, 0].to(self.args.device)
 
       assert not self.preEncoder
-      if  self.args.shapePreType == 'SurfacePointsEncode':
-          self.shapeEncoder.eval()
-          shape_feature = self.shapeEncoder(nextShape)
-          shape_feature = F.normalize(shape_feature, dim=1)
-      else:
-          shape_feature = self.shapeEncoder(nextShape)
-          shape_feature = torch.max(shape_feature, dim=1)[0]
+
+      shape_feature = self.shapeEncoder(nextShape)
+      shape_feature = torch.max(shape_feature, dim=1)[0]
 
       ems_inputs = candidates.contiguous().view(batchSize, candidates_size, -1)
       ems_embedded_inputs = self.init_ems_embed(ems_inputs)
@@ -872,13 +843,9 @@ class DQNP(nn.Module):
           nextShape = self.shapeArray[next_item_ID, 0].to(self.args.device)
 
       assert not self.preEncoder
-      if  self.args.shapePreType == 'SurfacePointsEncode':
-          self.shapeEncoder.eval()
-          shape_feature = self.shapeEncoder(nextShape)
-          shape_feature = F.normalize(shape_feature, dim=1)
-      else:
-          shape_feature = self.shapeEncoder(nextShape)
-          shape_feature = torch.max(shape_feature, dim=1)[0]
+
+      shape_feature = self.shapeEncoder(nextShape)
+      shape_feature = torch.max(shape_feature, dim=1)[0]
 
       ems_inputs = candidates.contiguous().view(batchSize, candidates_size, -1)
       ems_embedded_inputs = self.init_ems_embed(ems_inputs)
@@ -887,16 +854,8 @@ class DQNP(nn.Module):
                                   ems_embedded_inputs), dim=2).view(batchSize * candidates_size, -1)
       init_embedding = self.oneMore(init_embedding).view(batchSize, candidates_size, self.embedding_dim)
 
-      # embeddings = init_embedding
-
       embeddings = torch.cat((shape_feature, map_feature), dim=1).view(batchSize, -1)
       graph_embed = self.noAction(embeddings)
-
-      # init_embedding_shape = init_embedding.shape
-      # transEmbedding = init_embedding.view((batchSize, graph_size, -1))
-      # invalid_ones = invalid_ones.view(init_embedding_shape[0], init_embedding_shape[1], 1).expand(init_embedding_shape).bool()
-      # transEmbedding[invalid_ones] = 0
-      # graph_embed = transEmbedding.view(init_embedding_shape).mean(1)  # 其实这里的取均值一定程度上相当于相加了
 
       return init_embedding, graph_embed
 
@@ -1041,13 +1000,9 @@ class DQNP(nn.Module):
           nextShape = self.shapeArray[next_item_ID, 0].to(self.args.device)
 
       assert not self.preEncoder
-      if  self.args.shapePreType == 'SurfacePointsEncode':
-          self.shapeEncoder.eval()
-          shape_feature = self.shapeEncoder(nextShape)
-          shape_feature = F.normalize(shape_feature, dim=1)
-      else:
-          shape_feature = self.shapeEncoder(nextShape)
-          shape_feature = torch.max(shape_feature, dim=1)[0]
+
+      shape_feature = self.shapeEncoder(nextShape)
+      shape_feature = torch.max(shape_feature, dim=1)[0]
 
       ems_inputs = candidates.contiguous().view(batchSize, candidates_size, -1)
       ems_embedded_inputs = self.init_ems_embed(ems_inputs)

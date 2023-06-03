@@ -110,7 +110,6 @@ useHeightMap = True
 globalView = False
 stability  = False
 poseDist   = False
-# shapePreType = 'MeshVertices' # MeshVertices, SurfacePoints, PreTrain, Index, Triangle, SurfacePointsRandom, SurfacePointsEncode
 shapePreType = 'SurfacePointsRandom' # MeshVertices, SurfacePoints, PreTrain, Index, Triangle, SurfacePointsRandom, SurfacePointsEncode, GlobalIndices
 actionType = 'Uniform' # Uniform, RotAction, LineAction, HeuAction
 rewardType = 'ratio'  # number, aabb, ratio
