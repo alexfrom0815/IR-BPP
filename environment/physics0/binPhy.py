@@ -30,12 +30,8 @@ class PackingGame(gym.Env):
                  visual = False,
                  timeStr = None,
                  globalView = False, # if we cancel the global view, the heightmap need to be re-scanned.
-                 stability = False,
-                 poseDist = False,
                  shotInfo=None,
-                 rewardType='ratio',  # number, aabb, ratio
-                 actionType='Uniform', # Uniform, RotAction, LineAction, HeuAction
-                 elementWise = False,
+                 actionType='Uniform', # Uniform
                  simulation=True,
                  scale = [100,100,100],
                  selectedAction = False,
@@ -43,7 +39,6 @@ class PackingGame(gym.Env):
                  previewNum = 1,
                  dataSample='instance',
                  maxBatch = 2,
-                 randomConvex = False,
                  meshScale = 1,
                  heightResolution = 0.01,
                  **kwargs):
@@ -69,11 +64,7 @@ class PackingGame(gym.Env):
         self.useHeightMap = useHeightMap
         self.heightMapPre = heightMap
         self.globalView = globalView
-        self.stability = stability
-        self.rewardType = rewardType
         self.actionType = actionType
-        self.heuristicPool = ['DBLF', 'HM', 'MINZ', 'FIRSTFIT']
-        # self.heuristicPool = ['DBLF', 'HM', 'MINZ']
         self.selectedAction = selectedAction
         self.convexAction = convexAction
         if self.convexAction is not None:
@@ -81,15 +72,8 @@ class PackingGame(gym.Env):
         self.chooseItem = previewNum > 1
         self.previewNum = previewNum
 
-        self.lineAction = self.actionType == 'LineAction'
-        self.rotAction = self.actionType == 'RotAction'
-        self.heuAction = self.actionType == 'HeuAction'
-        self.elementWise = elementWise
         self.simulation = simulation
-        if self.elementWise:
-            self.item_vec = np.zeros((packed_holder, 9))
-        else:
-            self.item_vec = np.zeros((1000, 9))
+        self.item_vec = np.zeros((1000, 9))
         if self.heightMapPre: assert useHeightMap
 
         if self.useHeightMap:
@@ -120,13 +104,6 @@ class PackingGame(gym.Env):
         self.rotNum = self.ZRotNum * self.DownRotNum
         if self.selectedAction:
             self.act_len = self.selectedAction
-        elif self.rotAction:
-            self.act_len = self.rotNum
-        elif self.lineAction:
-            self.act_len = self.rangeX_A * self.rotNum
-        elif self.heuAction:
-            # self.act_len = len(self.heuristicPool) * self.rotNum * 4
-            self.act_len = len(self.heuristicPool)
         else:
             self.act_len = self.rangeX_A * self.rangeY_A * self.rotNum
 
@@ -136,8 +113,6 @@ class PackingGame(gym.Env):
         if not self.chooseItem:
             self.obs_len = len(self.next_item_vec.reshape(-1))
 
-            if self.elementWise:
-                self.obs_len += len(self.item_vec.reshape(-1))
             if self.selectedAction:
                 self.obs_len += self.selectedAction * 5
             else:
@@ -152,29 +127,17 @@ class PackingGame(gym.Env):
                                                 shape=(self.obs_len,))
         self.action_space = gym.spaces.Discrete(self.act_len)
 
-        # self.trajsInfo = []
         self.timeStr = timeStr
         self.tolerance = 0 # defalt 0.002
-        self.poseDist = poseDist
-        if self.stability:
-            assert self.simulation
-            self.finished = [True]
-            self.score = [0]
-            self.nowTask = False
-            self.nullObs = np.zeros((self.obs_len))
+
         self.episodeCounter = 0
         self.updatePeriod = 500
-        assert not elementWise
         self.trajs = []
         self.orderAction = 0
         self.hierachical = False
 
-
         self.test = test
 
-        # self.oneshapeTime = 0
-        # self.oneshapeFreq = 0
-        # self.figure8 = []
         self.timeStr = time.strftime('%Y.%m.%d-%H-%M-%S', time.localtime(time.time()))
         self.maxBatch = maxBatch
         self.heightResolution = heightResolution
@@ -201,16 +164,12 @@ class PackingGame(gym.Env):
                                        visual=False, scale=self.scale, simulationScale=self.meshScale)
         else:
             self.interface.reset()
-
         self.item_creator.reset(index)
         self.packed = []
         self.packedId = []
         self.next_item_vec[:] = 0
         self.item_idx = 0
-        self.areaSum = []
-        self.dists = []
         self.item_vec[:] = 0
-        self.save = False
         return self.cur_observation()
 
     def get_ratio(self):
@@ -229,7 +188,6 @@ class PackingGame(gym.Env):
     def gen_next_item_ID(self):
         return self.item_creator.preview(1)[0]
 
-
     def get_action_candidates(self, orderAction):
         self.hierachical = True
         self.next_item_ID = self.next_k_item_ID[orderAction]
@@ -240,12 +198,9 @@ class PackingGame(gym.Env):
         self.orderAction = orderAction
         return locObservation
 
-
     def get_all_possible_observation(self):
-        # 完全无视order action
         self.hierachical = True
         self.chooseItem = False
-
         all_obs = []
         for itemID in self.next_k_item_ID:
             self.next_item_ID = itemID
@@ -269,16 +224,9 @@ class PackingGame(gym.Env):
 
             if self.useHeightMap:
                 naiveMask = self.space.get_possible_position(self.next_item_ID, self.shapeDict[self.next_item_ID], self.selectedAction)
-                if self.lineAction:
-                    naiveMask = np.sum(naiveMask.reshape((-1, self.rangeY_A)), axis=1)
-                    naiveMask = np.where(naiveMask > 0, 1, 0)
-                elif self.rotAction:
-                    naiveMask = np.sum(naiveMask.reshape((-1, self.rangeX_A * self.rangeY_A)), axis=1)
-                    naiveMask = np.where(naiveMask > 0, 1, 0)
             else:
                 naiveMask = self.get_possible_position(self.next_item_ID)
 
-            if self.heuAction: naiveMask = np.ones(self.act_len)
             result = self.next_item_vec.reshape(-1)
 
             if not self.selectedAction:
@@ -287,17 +235,11 @@ class PackingGame(gym.Env):
 
             if self.heightMapPre:
                 result = np.concatenate((result, self.space.heightmapC.reshape(-1)))
-            if self.elementWise:
-                result = np.concatenate((self.item_vec.reshape(-1), result))
             if self.selectedAction:
                 self.candidates = None
                 if self.convexAction is not None:
-                    self.candidates, save = getConvexHullActions(self.space.posZValid, self.space.naiveMask,
-                                                                 self.convexAction,
-                                                                 self.heightResolution,
-                                                                 draw=draw)
-                    if save:
-                        self.save = True
+                    self.candidates= getConvexHullActions(self.space.posZValid, self.space.naiveMask,
+                                                                 self.heightResolution)
                     if self.candidates is not None:
                         if len(self.candidates) > self.selectedAction:
                             # sort with height
@@ -325,29 +267,7 @@ class PackingGame(gym.Env):
         return result
 
     def action_to_position(self, action):
-        if self.chooseItem and not self.hierachical:
-            self.orderAction = action
-            self.next_item_ID = self.next_k_item_ID[action]
-            self.space.get_possible_position(self.next_item_ID, self.shapeDict[self.next_item_ID], self.selectedAction)
-            rotIdx, lx, ly = self.space.get_heuristic_action(0, 'DBLF', self.next_item_ID, self.shapeDict[self.next_item_ID])
-        elif self.lineAction:
-            rotIdx = action // self.rangeX_A
-            lx = action %  self.rangeX_A
-            ly = np.argmin(self.space.posZmap[rotIdx,lx])
-        elif self.rotAction:
-            rotIdx = action
-            index = np.argmin(self.space.posZmap[rotIdx])
-            lx, ly = np.unravel_index(index, (self.rangeX_A, self.rangeY_A))
-        elif self.heuAction:
-            heuIdx = np.unravel_index(action, (len(self.heuristicPool),))[0]
-            rotIdx, lx, ly = self.space.get_heuristic_action(0, self.heuristicPool[heuIdx], self.next_item_ID, self.shapeDict[self.next_item_ID])
-        else:
-            if self.actionType == 'UniformTuple':
-                rotIdx, lx, ly = action
-            elif self.selectedAction:
-                rotIdx, lx, ly = self.candidates[action][0:3].astype(np.int)
-            else:
-                rotIdx, lx, ly = np.unravel_index(action, (self.rotNum, self.rangeX_A, self.rangeY_A))
+        rotIdx, lx, ly = self.candidates[action][0:3].astype(np.int)
         return rotIdx, np.round((lx * self.resolutionAct, ly * self.resolutionAct, self.bin_dimension[2]), decimals=6), (lx,ly)
 
     def get_possible_position(self, next_item_ID):
@@ -374,23 +294,6 @@ class PackingGame(gym.Env):
 
     # Note the transform between Ra coord and Rh coord
     def step(self, action):
-        if self.stability and not self.finished[0]:
-            return self.nullObs, 0.0, False, {'Valid': False, 'MINZ': np.argmin(self.space.posZValid)}
-
-        if self.stability and self.finished[0] and self.nowTask:
-            heightMapShape = self.space.heightmapC.shape
-            info = {'counter': self.item_idx,
-                    'ratio': self.get_ratio(),
-                    'bottom_area': np.mean(self.areaSum),
-                    'poseDist': np.mean(self.dists),
-                    'Occupancy': np.sum(self.space.heightmapC)/ (heightMapShape[0] * heightMapShape[1] * self.bin_dimension[2]),
-                    'Valid': True,
-                    'MINZ': np.argmin(self.space.posZValid)}
-            self.nowTask = False
-            info['stability'] = self.score[0]
-            reward = 1e2 * info['stability']
-            observation = self.cur_observation()
-            return observation, reward, True, info
 
         rotIdx, targetFLB, coordinate = self.action_to_position(action)
         self.startSimulation = time.time()
@@ -438,17 +341,9 @@ class PackingGame(gym.Env):
                     self.packed[replayIdx][3] = orientationT
 
             reward = 0.0
-            if self.stability:
-                self.finished[0] = False
-                subProcess = threading.Thread(target=stabilityScore, args=(self.score, self.finished, self.interface))
-                subProcess.start()
-                self.nowTask = True
-                return self.nullObs, 0.0, False, {'Valid': False, 'MINZ': np.argmin(self.space.posZValid)}
 
             info = {'counter': self.item_idx,
                     'ratio': self.get_ratio(),
-                    'bottom_area': np.mean(self.areaSum),
-                    'poseDist': np.mean(self.dists),
                     'Occupancy': self.get_occupancy(),
                     'Valid': True,
                     'MINZ': np.argmin(self.space.posZValid)}
@@ -466,28 +361,11 @@ class PackingGame(gym.Env):
             self.item_vec[self.item_idx, 0] = self.next_item_ID
             self.item_vec[self.item_idx, -1] = 1
 
-            if self.rewardType == 'ratio':
-                item_ratio = self.get_item_ratio(self.next_item_ID)
-                reward = item_ratio * 10
-            elif self.rewardType == 'aabb':
-                aabb_ratio = np.prod(bounds[1] - bounds[0]) / np.prod(self.bin_dimension)
-                reward = aabb_ratio * 10 # wrong design, vmax is not right
-            elif self.rewardType == 'number':
-                reward = 1 # wrong design, vmax is not right
+            item_ratio = self.get_item_ratio(self.next_item_ID)
+            reward = item_ratio * 10
 
-            # Side tasks
-            bottom_area = np.prod((bounds[1] - bounds[0])[0:2])
-            self.areaSum.append(bottom_area)
-
-            # FLB2centroid = np.array(positionT) - bounds[0]
-            # centroidPosition = np.array((*translation[0:2], height)) + FLB2centroid
-            # dist = pose_distance((centroidPosition, rotation), (positionT, orientationT))
-            dist = 0
-            self.dists.append(dist)
-            if self.poseDist:
-                reward = max(reward - dist * 0.1, 1e-3)
-
-            reward -= np.var(self.space.heightmapC)
+            # optional, to help the packing result more even
+            # reward -= np.var(self.space.heightmapC)
 
             self.item_idx += 1
             self.item_creator.update_item_queue(self.orderAction)

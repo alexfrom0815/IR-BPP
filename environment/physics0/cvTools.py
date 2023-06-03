@@ -58,13 +58,10 @@ def find_convex_vetex(approx):
 
         return np.where(cross < 0)[0]
 
-def getConvexHullActions(posZValid, mask, actionType, heightResolution, draw = False):
+def getConvexHullActions(posZValid, mask,  heightResolution):
     allCandidates = []
-    save = False
     for rotIdx in range(len(posZValid)):
-        allHulls, V, s = convexHulls(posZValid[rotIdx], mask[rotIdx], actionType, heightResolution, draw)
-        if s:
-            save = True
+        allHulls, V= convexHulls(posZValid[rotIdx], mask[rotIdx],  heightResolution)
         if len(allHulls) != 0:
             H = posZValid[rotIdx][allHulls[:,1], allHulls[:,0]]
             ROT = np.ones((len(allHulls))) * rotIdx
@@ -73,26 +70,15 @@ def getConvexHullActions(posZValid, mask, actionType, heightResolution, draw = F
             allCandidates.append(candidates)
     if len(allCandidates)!= 0:
         allCandidates = np.concatenate(allCandidates, axis=0)
-        return allCandidates, save
+        return allCandidates
     else:
-        return None, save
+        return None
 
-def convexHulls(posZMap, mask, actionType,  heightResolution = 0.01, draw = False):
+def convexHulls(posZMap, mask,   heightResolution = 0.01):
     mapInt = (posZMap // heightResolution).astype(np.int32)
     mapInt[mask==0] = -1
     uniqueHeight = np.unique(mapInt)
     allCandidates = []
-    save = False
-    if draw:
-        mapO = posZMap // (1 / 255)
-        mapO = mapO.astype(np.uint8)
-        mapO = cv2.applyColorMap(mapO, cv2.COLORMAP_JET)
-
-        mapDraw = posZMap * mask
-        mapDraw = mapDraw // (1 / 255)
-        mapDraw[mask == 0] = -1
-        mapDraw = mapDraw.astype(np.uint8)
-        mapDraw = cv2.applyColorMap(mapDraw, cv2.COLORMAP_JET)
 
     for h in uniqueHeight:
         if h == -1: continue
@@ -102,56 +88,16 @@ def convexHulls(posZMap, mask, actionType,  heightResolution = 0.01, draw = Fals
 
         for i in range(len(newContour)):
             defects = None
-            if actionType == 'HullVertices' or actionType == 'Defects':
-                hx, hy, hw, hh = cv2.boundingRect(newContour[i])
-                if hw * hh <= 6 and hw !=1 and hh !=1:
-                    candidate = sorted(newContour[i].reshape((-1, 2)), key=lambda ems: (ems[1], ems[0]), reverse=False)[0]
-                    candidate = candidate.reshape((-1,2))
-                else:
-                    candidateIdx = cv2.convexHull(newContour[i], returnPoints=False)
-                    candidate = newContour[i][candidateIdx].reshape((-1, 2))
-                    if actionType == 'Defects':
-                        candidateIdx[::-1].sort(axis=0)
-                        defects = cv2.convexityDefects(newContour[i], candidateIdx)
-                        if defects is not None:
-                            defectsIdx = defects[:, 0, 2]
-                            defects = newContour[i][defectsIdx]
-            elif actionType == 'ConvexVertex':
-                approx = cv2.approxPolyDP(newContour[i], 1, True)
-                convexIndex = find_convex_vetex(approx)
-                candidate = approx[convexIndex].reshape((-1, 2))
-            else:
-                assert actionType == 'Contour'
-                candidate = newContour[i].reshape((-1, 2))
-
+            approx = cv2.approxPolyDP(newContour[i], 1, True)
+            convexIndex = find_convex_vetex(approx)
+            candidate = approx[convexIndex].reshape((-1, 2))
             allCandidates.append(candidate)
             if defects is not None:
                 allCandidates.append(defects.reshape(-1,2))
 
-            if draw:
-                origin = cv2.cvtColor(check, cv2.COLOR_GRAY2BGR)
-                # Draw contour
-                canvasC = cv2.cvtColor(check, cv2.COLOR_GRAY2BGR)
-                cv2.drawContours(image=canvasC, contours=newContour, contourIdx=-1, color=(0, 255, 0), thickness=1)
-
-                # Draw hull
-                canvasH = cv2.cvtColor(check, cv2.COLOR_GRAY2BGR)
-                cv2.polylines(canvasH, [candidate], True, (255, 255, 0), thickness=1)
-                for singH in candidate:
-                    cv2.circle(mapDraw, tuple(singH.reshape(2).tolist()), radius=1, color=(0,0,255))
-
-                canThisLayer = cv2.cvtColor(check, cv2.COLOR_GRAY2BGR)
-                for singH in candidate:
-                    cv2.circle(canThisLayer, tuple(singH.reshape(2).tolist()), radius=1, color=(0, 0, 255))
-
-                if defects is not None:
-                    drawD = defects.reshape(-1, 2)
-                    for singD in drawD:
-                        cv2.circle(canThisLayer, tuple(singD.reshape(2).tolist()), radius=1, color=(0, 255, 0))
-
     V = None
     if len(allCandidates) != 0:
         allCandidates = np.concatenate(allCandidates, axis=0)
-        allCandidates = np.unique(allCandidates,axis=0) # this is img coords, but not suitable for numpy coords
+        allCandidates = np.unique(allCandidates,axis=0)
         V = mask[(allCandidates[:, 1], allCandidates[:, 0])]
-    return allCandidates, V, save
+    return allCandidates, V

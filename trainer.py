@@ -36,8 +36,6 @@ def learningPara(T, priority_weight_increase, model_save_path, dqn, mem, timeStr
             for i in range(len(mem)):
                 mem[i].priority_weight = min(mem[i].priority_weight + priority_weight_increase, 1)  # Anneal importance sampling weight β to 1
 
-            # if timeStep - learnCounter >= args.replay_frequency:
-            # learnCounter = timeStep
             dqn.reset_noise()
             loss = dqn.learn(mem)  # Train with n-step distributional double-Q learning
 
@@ -92,8 +90,6 @@ def learningParaHierachical(T, priority_weight_increase, model_save_path, orderD
                 if args.locTrain:
                     locMem[i].priority_weight = min(locMem[i].priority_weight + priority_weight_increase, 1)  # Anneal importance sampling weight β to 1
 
-            # if timeStep - learnCounter >= args.replay_frequency:
-            # learnCounter = timeStep
             if args.orderTrain:
                 orderDQN.reset_noise()
                 orderLoss = orderDQN.learn(orderMem)  # Train with n-step distributional double-Q learning

@@ -30,6 +30,7 @@ def main(args):
           args.device = torch.device('cuda:{}'.format(args.device))
       else:
           args.device = torch.device('cuda:{}'.format(config.device))
+
       torch.cuda.manual_seed(args.seed)
       torch.backends.cudnn.enabled = args.enable_cudnn
     else:
@@ -131,7 +132,6 @@ def main(args):
     args.useHeightMap = config.useHeightMap
     args.visual = config.visual
     args.globalView = config.globalView if args.data_name is None else args.globalView
-    args.stability = config.stability
     args.poseDist  = config.poseDist
     args.shotInfo = shotInfoPre(args, args.meshScale)
     args.rewardType = config.rewardType
