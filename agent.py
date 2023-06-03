@@ -71,15 +71,6 @@ class Agent():
     else:
       return self.act(state, mask)
 
-  def evalutate_item(self, state, mask):
-    with torch.no_grad():
-      q_map = self.online_net(state)
-      sum_q_map = q_map * self.support
-      sum_q_map = sum_q_map.sum(2)
-      # if mask is not None:
-      #   sum_q_map[(1 - mask).bool()] = -math.inf
-    return torch.max(sum_q_map,dim=-1) # 现在的value是不是有负值啊
-
   # core part
   def learn(self, memory):
     segment_size = int(self.batch_size/len(memory))
@@ -87,7 +78,6 @@ class Agent():
 
 
     for mem in memory:
-      # Sample transitions 为啥只有state和next state是 65*5
       idx, state, action, ret, next_state, nonterminal, weight = mem.sample(segment_size)
       idxs.append(idx), states.append(state), actions.append(action), returns.append(ret)
       next_states.append(next_state), nonterminals.append(nonterminal), weights.append(weight)
@@ -100,9 +90,7 @@ class Agent():
     weights = torch.cat(weights, 0)
 
     # Calculate current state probabilities (online network noise already sampled)
-    # 转换成值函数的分布概率图
     log_ps, loss_cl = self.online_net(states, log=True, getCL = True)  # Log probabilities log p(s_t, ·; θonline)
-    # 指定动作的分布概率
     log_ps_a = log_ps[range(self.batch_size), actions]  # log p(s_t, a_t; θonline)
 
     with torch.no_grad():

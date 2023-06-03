@@ -106,13 +106,6 @@ def get_args():
     parser.add_argument('--doubleRot', action='store_true')
     parser.add_argument('--model', type=str, default=None)
 
-
-    # parser.add_argument('--dataSample', type=str, default=None)
-    # parser.add_argument('--objPath', type=str, default=None)
-    # parser.add_argument('--pointCloud', type=str, default=None)
-
-
-
     args = parser.parse_args()
     print('first hierachical',args.hierachical)
     print(' ' * 26 + 'Options')

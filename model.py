@@ -111,16 +111,7 @@ class DQN(nn.Module):
         if not self.boundingBoxVec:
             # # Encode a mesh into mesh feature.
 
-            if self.preEncoder:
-                assert False, 'forbidden'
-                self.shapeEncoder = nn.Sequential()
-                self.shapeEncoder.add_module('linear1', init_(nn.Linear(512, int(zDim/2))))
-                self.shapeEncoder.add_module('relu1', nn.LeakyReLU())
-            elif self.indexPresentation:
-                self.shapeEncoder = nn.Sequential()
-                self.shapeEncoder.add_module('linear1', init_(nn.Linear(128, int(zDim/2))))
-                self.shapeEncoder.add_module('relu1', nn.LeakyReLU())
-            elif self.args.shapePreType == 'SurfacePointsEncode':
+            if self.args.shapePreType == 'SurfacePointsEncode':
                 self.shapeEncoder = ResnetPointnet(c_dim=128)
                 state_dict = torch.load(args.encoderPath)
                 self.shapeEncoder.load_state_dict(state_dict)
@@ -186,18 +177,6 @@ class DQN(nn.Module):
                     self.shorter.add_module('linear1', init_(nn.Linear(zDim, int(zDim / 2))))
                     self.shorter.add_module('relu1', nn.LeakyReLU())
 
-            # # # Point Transformer
-            # n_heads = 1
-            # n_layers = 1
-            # graph_size = args.triangleNum
-            # # Use graph attention network to encode the packed items.
-            # self.pointTransformer = GraphAttentionEncoder(
-            #     n_heads=n_heads,
-            #     embed_dim=int(zDim / 2),
-            #     n_layers=n_layers,
-            #     graph_size=graph_size,
-            #     feed_forward_hidden=256)
-
         else:
             self.shapeEncoder = nn.Sequential()
             self.shapeEncoder.add_module('linear1', init_(nn.Linear(3, 128)))
@@ -237,11 +216,6 @@ class DQN(nn.Module):
               feed_forward_hidden=256)
 
         # Encode the object mask
-        # self.maskEncoder = nn.Sequential()
-        # self.maskEncoder.add_module('linear1', init_(nn.Linear(self.action_space, 128)))
-        # self.maskEncoder.add_module('relu2', nn.LeakyReLU())
-        # self.maskEncoder.add_module('linear3', init_(nn.Linear(128, int(zDim / 2))))
-        # self.maskEncoder.add_module('relu3', nn.LeakyReLU())
         if self.lineAction or self.rotAction or self.heuAction:
             self.maskEncoder = nn.Sequential()
             self.maskEncoder.add_module('linear1', init_(nn.Linear(self.action_space, zDim)))
@@ -278,41 +252,6 @@ class DQN(nn.Module):
     self.fc_h_a = NoisyLinear(self.output_size, args.hidden_size, std_init=args.noisy_std)
     self.fc_z_v = NoisyLinear(args.hidden_size, self.atoms, std_init=args.noisy_std)
     self.fc_z_a = NoisyLinear(args.hidden_size, action_space * self.atoms, std_init=args.noisy_std)
-
-  def info_nce_loss(self, features):
-        batchSize = int(len(features)/2)
-        temperature = 0.07
-        n_views = 2
-
-        labels = torch.cat([torch.arange(batchSize) for i in range(n_views)], dim=0)
-        labels = (labels.unsqueeze(0) == labels.unsqueeze(1)).float()
-        labels = labels.to(self.args.device)
-
-        features = F.normalize(features, dim=1)
-
-        similarity_matrix = torch.matmul(features, features.T)
-        # assert similarity_matrix.shape == (
-        #     self.args.n_views * self.args.batch_size, self.args.n_views * self.args.batch_size)
-        # assert similarity_matrix.shape == labels.shape
-
-        # discard the main diagonal from both: labels and similarities matrix
-        mask = torch.eye(labels.shape[0], dtype=torch.bool).to(self.args.device)
-        labels = labels[~mask].view(labels.shape[0], -1)
-        similarity_matrix = similarity_matrix[~mask].view(similarity_matrix.shape[0], -1)
-        # assert similarity_matrix.shape == labels.shape
-
-        # select and combine multiple positives
-        positives = similarity_matrix[labels.bool()].view(labels.shape[0], -1)
-
-        # select only the negatives the negatives
-        negatives = similarity_matrix[~labels.bool()].view(similarity_matrix.shape[0], -1)
-
-        logits = torch.cat([positives, negatives], dim=1)
-        labels = torch.zeros(logits.shape[0], dtype=torch.long).to(self.args.device)
-
-        logits = logits / temperature
-        return logits, labels
-
 
   def decode_mesh(self, observation):
       batchSize = observation.shape[0]
@@ -460,55 +399,6 @@ class DQN(nn.Module):
       x = torch.cat([map_feature, shape_feature, mask_feature], dim=1)
 
       return x
-
-  def embed_physic_only_with_heightmap_contrastive(self, x, getCL = False):
-      batchSize = x.shape[0]
-
-      next_item, masks, heightMap = self.decode_physic_only_with_heightmap(x)
-      heightMap = heightMap.reshape((batchSize, 1, self.MapLength, self.MapLength))
-      if self.lineAction or self.rotAction or self.heuAction:
-        masks = masks.reshape((batchSize, -1))
-      else:
-        masks = masks.reshape((batchSize, self.rotNum, self.ActLength, self.ActLength))
-
-      next_item_ID = next_item[:, 0].long()
-      if self.args.shapePreType == 'SurfacePointsRandom' or self.args.shapePreType == 'SurfacePointsEncode':
-          nextShape = self.shapeArray[next_item_ID]
-          indices = np.random.randint(self.shapeArray.shape[1], size=self.args.samplePointsNum)  # 这里是不是最好是不重复的元素啊
-          nextShape = nextShape[:, indices].to(self.args.device)
-      else:
-          nextShape = self.shapeArray[next_item_ID, 0].to(self.args.device)
-
-      map_feature = self.heightEncoder(heightMap).reshape((batchSize, -1))
-
-      assert not self.preEncoder
-      if  self.args.shapePreType == 'SurfacePointsEncode':
-          self.shapeEncoder.eval()
-          shape_feature = self.shapeEncoder(nextShape)
-          shape_feature = F.normalize(shape_feature, dim=1)
-      else:
-          shape_feature = self.shapeEncoder(nextShape)
-          shape_feature = torch.max(shape_feature, dim=1)[0]
-
-      loss_cl = None
-      getCL = True
-      if getCL:
-        nextShapeCL = self.shapeArray[next_item_ID]
-        indicesCL = np.random.randint(self.shapeArray.shape[1], size=self.args.samplePointsNum)  # 这里是不是最好是不重复的元素啊
-        nextShapeCL = nextShapeCL[:, indicesCL].to(self.args.device)
-        shape_feature_CL = self.shapeEncoder(nextShapeCL)
-        if not self.preEncoder and self.args.shapePreType != 'SurfacePointsEncode':
-            shape_feature_CL = torch.max(shape_feature_CL, dim=1)[0]
-        shape_feature_CL = F.normalize(shape_feature_CL, dim=1)
-        logits_cl, labels_cl = self.info_nce_loss(torch.cat((shape_feature, shape_feature_CL), dim=0))
-        loss_cl = F.cross_entropy(logits_cl, labels_cl)
-
-      mask_feature = self.maskEncoder(masks).reshape((batchSize, -1))
-
-      x = torch.cat([map_feature, shape_feature, mask_feature], dim=1)
-
-      return x, loss_cl
-
 
   def embed_physic_only_with_heightmap_index(self, x):
       batchSize = x.shape[0]
