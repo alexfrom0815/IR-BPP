@@ -170,12 +170,7 @@ class PackingGame(gym.Env):
         self.orderAction = 0
         self.hierachical = False
 
-        self.calFreq = False
 
-        if self.calFreq:
-            self.dicRecorder = {}
-            for v in self.dicPath.values():
-                self.dicRecorder[v] = 0
         self.test = test
 
         # self.oneshapeTime = 0
@@ -183,7 +178,6 @@ class PackingGame(gym.Env):
         # self.figure8 = []
         self.timeStr = time.strftime('%Y.%m.%d-%H-%M-%S', time.localtime(time.time()))
         self.maxBatch = maxBatch
-        self.LFSS = LFSS
         self.randomConvex = randomConvex
         self.heightResolution = heightResolution
 
@@ -239,29 +233,15 @@ class PackingGame(gym.Env):
 
 
     def get_action_candidates(self, orderAction):
-        if not self.LFSS:
-            self.hierachical = True
-            self.next_item_ID = self.next_k_item_ID[orderAction]
-            self.space.get_possible_position(self.next_item_ID, self.shapeDict[self.next_item_ID], self.selectedAction)
-            self.chooseItem = False
-            locObservation  = self.cur_observation(genItem = False)
-            self.chooseItem = True
-            self.orderAction = orderAction
-            return locObservation
-        else:
-            # 完全无视order action
-            self.hierachical = True
-            vList = []
-            for largeID in self.next_k_item_ID:
-                vList.append(self.infoDict[largeID][0]['volume'])
-            orderAction = np.argmax(vList)
-            self.next_item_ID = self.next_k_item_ID[orderAction]
-            self.space.get_possible_position(self.next_item_ID, self.shapeDict[self.next_item_ID], self.selectedAction)
-            self.chooseItem = False
-            locObservation  = self.cur_observation(genItem = False)
-            self.chooseItem = True
-            self.orderAction = orderAction
-            return locObservation
+        self.hierachical = True
+        self.next_item_ID = self.next_k_item_ID[orderAction]
+        self.space.get_possible_position(self.next_item_ID, self.shapeDict[self.next_item_ID], self.selectedAction)
+        self.chooseItem = False
+        locObservation  = self.cur_observation(genItem = False)
+        self.chooseItem = True
+        self.orderAction = orderAction
+        return locObservation
+
 
     def get_all_possible_observation(self):
         # 完全无视order action
@@ -464,18 +444,6 @@ class PackingGame(gym.Env):
                     positionT, orientationT = self.interface.get_Wraped_Position_And_Orientation(idNow, inner=False)
                     self.packed[replayIdx][2] = positionT
                     self.packed[replayIdx][3] = orientationT
-
-            if self.calFreq:
-                self.dicRecorder[self.dicPath[self.next_item_ID]] += 1
-                freq = np.array(list(self.dicRecorder.values())).astype(np.float)
-                freq /= np.sum(freq)
-                name = list(self.dicRecorder.keys())
-                order = np.argsort(freq)
-                print('######################################')
-                for index in order:
-                    print('{}: {}'.format(name[index], freq[index]))
-                name = self.objPath.split('/')[-1]
-                # np.save(name + '.npy', self.dicRecorder)
 
             reward = 0.0
             if self.stability:

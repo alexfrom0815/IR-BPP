@@ -22,7 +22,7 @@ def main(args):
         custom = input('Please input the experiment name\n')
     else:
         custom = args.custom
-    # custom = 'debug'
+
     timeStr = custom + '-' + time.strftime('%Y.%m.%d-%H-%M-%S', time.localtime(time.time()))
 
     if torch.cuda.is_available() and not args.disable_cuda:
@@ -87,9 +87,7 @@ def main(args):
         args.bin_dimension = config.bin_dimension
         args.ZRotNum = config.ZRotNum
     else:
-        if 'BlockL' in args.dicPath:
-            args.bin_dimension = [0.32, 0.32, 0.035]
-        elif 'tetris' in args.dicPath:
+        if 'tetris' in args.dicPath:
             args.bin_dimension = [0.32, 0.32, 0.30]
         else:
             args.bin_dimension = [0.32, 0.32, 0.30]
@@ -99,18 +97,12 @@ def main(args):
             args.ZRotNum = 2  # Max: 4/8
         else:
             args.ZRotNum = 4  # Max: 4/8
-        if args.doubleRot:
-            args.ZRotNum *= 2
 
     args.bin_dimension = np.round(args.bin_dimension, decimals=6)
     args.packed_holder = config.packed_holder
-    args.boxPack = config.boxPack
     args.boundingBoxVec = config.boundingBoxVec
     args.DownRotNum = config.DownRotNum
-    args.boxset = config.boxset
-    args.triangleNum = config.triangleNum
     args.objVecLen = config.objVecLen
-    # args.dicPath = config.dicPath
     args.load_memory_path = config.load_memory_path
     args.save_memory_path = config.save_memory_path
     args.scale = config.scale
@@ -122,9 +114,9 @@ def main(args):
     if args.selectedAction: assert  args.actionType == 'Uniform'
     if args.data_name is None:
         args.model = config.model
+
     args.convexAction = config.convexAction if args.data_name is None else args.convexAction
     args.samplePointsNum = config.samplePointsNum if args.data_name is None else args.samplePointsNum
-    # args.dataSample = config.dataSample if args.data_name is None else args.dataSample
     assert 'vhacd' in  args.objPath
 
 
@@ -145,7 +137,6 @@ def main(args):
     args.rewardType = config.rewardType
     args.elementWise = config.elementWise
     args.encoderPath = config.encoderPath
-    # args.pointCloud = config.pointCloud if args.data_name is None else args.pointCloud
     args.simulation = config.simulation
     args.shapePreType = config.shapePreType
     args.test = config.test
@@ -156,7 +147,7 @@ def main(args):
 
     args.maxBatch = config.maxBatch
     args.randomConvex = config.randomConvex
-    args.LFSS = config.LFSS
+
 
     envs, spaces, obs_len = make_vec_envs(args, './logs/runinfo', True)
 

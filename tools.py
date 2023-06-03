@@ -124,7 +124,7 @@ def create_box(extents, init = 'BoundingBox'):
         assert False
     return mesh
 
-def gen_ray_origin_direction(xRange, yRange, resolution_h, boxPack, shift = 0.001):
+def gen_ray_origin_direction(xRange, yRange, resolution_h, boxPack = False, shift = 0.001):
 
     bottom = np.arange(0, xRange * yRange)
     bottom = bottom.reshape((xRange, yRange))
@@ -290,33 +290,21 @@ def load_shape_dict(args, returnInfo = False, origin = False, scale = 1):
     dicPath = args.dicPath
     objPath = args.objPath if not origin else args.objPath.replace('_vhacd', '')
     print('Load objects from:', objPath)
-    if not args.boxPack:
-        shapeDict = torch.load(dicPath)
-        for k in shapeDict.keys():
-            if k >= args.categories: break
-            loadPath = os.path.join(objPath, shapeDict[k])
+    shapeDict = torch.load(dicPath)
+    for k in shapeDict.keys():
+        if k >= args.categories: break
+        loadPath = os.path.join(objPath, shapeDict[k])
 
-            if args.enable_rotation:
-                if args.envName == 'Physics-v0':
-                    backDict[k] = load_mesh_plain(loadPath, args.DownRotNum, args.ZRotNum, 'BoundingBox', scale)
-            else:
-                if args.envName == 'Physics-v0':
-                    backDict[k] = load_mesh_plain(loadPath, args.DownRotNum, args.ZRotNum, 'BoundingBox', scale)
+        if args.enable_rotation:
+            if args.envName == 'Physics-v0':
+                backDict[k] = load_mesh_plain(loadPath, args.DownRotNum, args.ZRotNum, 'BoundingBox', scale)
+        else:
+            if args.envName == 'Physics-v0':
+                backDict[k] = load_mesh_plain(loadPath, args.DownRotNum, args.ZRotNum, 'BoundingBox', scale)
 
-            infoDict[k] = []
-            for idx in range(len(backDict[k])):
-                infoDict[k].append({'volume': backDict[k][idx].volume, 'extents': backDict[k][idx].extents})
-    else:
-        x_range = int(args.bin_dimension[0] / (args.resolutionA * 2))
-        y_range = int(args.bin_dimension[1] / (args.resolutionA * 2))
-        z_range = int(args.bin_dimension[2] / (args.resolutionA * 2))
-        extents = []
-        for i in range(x_range):
-            for j in range(y_range):
-                for k in range(z_range):
-                    extents.append([(i + 1) * args.resolutionA, (j + 1) * args.resolutionA, (k + 1) * args.resolutionA])
-        for k in range(len(extents)):
-            backDict[k] = [create_box(extents[k], 'BoundingBox')]
+        infoDict[k] = []
+        for idx in range(len(backDict[k])):
+            infoDict[k].append({'volume': backDict[k][idx].volume, 'extents': backDict[k][idx].extents})
     if returnInfo:
         return backDict, infoDict
     else:
@@ -328,7 +316,7 @@ def shotInfoPre(args, meshScale = 1):
     shapeDict = args.shapeDict
     rangeX_C = int(np.ceil(args.bin_dimension[0] / args.resolutionH))
     rangeY_C = int(np.ceil(args.bin_dimension[1] / args.resolutionH))
-    ray_origins, ray_directions = gen_ray_origin_direction(rangeX_C, rangeY_C, args.resolutionH, args.boxPack)
+    ray_origins, ray_directions = gen_ray_origin_direction(rangeX_C, rangeY_C, args.resolutionH, False)
     shotInfo = {}
     data_name = args.objPath.split('/')[-2]
     dicPath = args.dicPath.replace('.pt', '')

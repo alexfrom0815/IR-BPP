@@ -30,22 +30,7 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets, args):
             _, domain, task = env_id.split('.')
             env = dm_control2gym.make(domain_name=domain, task_name=task)
         else:
-            if args.envName == 'Ir-v0':
-                env = gym.make(args.envName,
-                               objPath = args.objPath,
-                               resolution_h = args.resolutionA,
-                               enable_rotation = args.enable_rotation,
-                               categories = args.categories,
-                               bin_dimension = args.bin_dimension,
-                               packed_holder = args.packed_holder,
-                               boxPack = args.boxPack,
-                               boundingBoxVec = args.boundingBoxVec,
-                               DownRotNum = args.DownRotNum,
-                               ZRotNum = args.ZRotNum,
-                               shapeDict = args.shapeDict,
-                               heightMap = args.heightMap)
-
-            elif args.envName == 'Physics-v0':
+            if args.envName == 'Physics-v0':
                 env = gym.make(args.envName,
                                objPath=args.objPath,
                                resolutionAct=args.resolutionA,
@@ -57,7 +42,6 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets, args):
                                categories=args.categories,
                                bin_dimension=args.bin_dimension,
                                packed_holder=args.packed_holder,
-                               boxPack=args.boxPack,
                                DownRotNum=args.DownRotNum,
                                ZRotNum=args.ZRotNum,
                                heightMap=args.heightMap,
@@ -80,16 +64,10 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets, args):
                                dataname = args.test_name,
                                maxBatch=args.maxBatch,
                                randomConvex=args.randomConvex,
-                               LFSS=args.LFSS,
                                meshScale=args.meshScale,
                                heightResolution = args.heightResolution
                                )
 
-            elif args.envName == 'Boxpack-v0':
-                env = gym.make(args.envName,
-                               container_size = args.bin_dimension,
-                               box_set = args.boxset,
-                               heightMap = args.heightMap)
             else:
                 assert False
 
@@ -137,21 +115,7 @@ def make_vec_envs(args,
         If you don't specify observation_space, we'll have to create a dummy
         environment to get it.
     """
-    if args.envName == 'Ir-v0':
-        env = gym.make(args.envName,
-                   objPath = args.objPath,
-                   resolution_h = args.resolutionA,
-                   enable_rotation = args.enable_rotation,
-                   categories = args.categories,
-                   bin_dimension = args.bin_dimension,
-                   packed_holder = args.packed_holder,
-                   boxPack = args.boxPack,
-                   boundingBoxVec = args.boundingBoxVec,
-                   DownRotNum = args.DownRotNum,
-                   ZRotNum = args.ZRotNum,
-                   shapeDict = args.shapeDict,
-                   heightMap = args.heightMap)
-    elif args.envName == 'Physics-v0':
+    if args.envName == 'Physics-v0':
         env = gym.make(args.envName,
                        objPath=args.objPath,
                        resolutionAct=args.resolutionA,
@@ -163,7 +127,6 @@ def make_vec_envs(args,
                        categories=args.categories,
                        bin_dimension=args.bin_dimension,
                        packed_holder=args.packed_holder,
-                       boxPack=args.boxPack,
                        DownRotNum=args.DownRotNum,
                        ZRotNum=args.ZRotNum,
                        heightMap=args.heightMap,
@@ -186,15 +149,9 @@ def make_vec_envs(args,
                        dataname=args.test_name,
                        maxBatch = args.maxBatch,
                        randomConvex = args.randomConvex,
-                       LFSS = args.LFSS,
                        meshScale=args.meshScale,
                        heightResolution = args.heightResolution
                        )
-    elif args.envName == 'Boxpack-v0':
-        env = gym.make(args.envName,
-                   container_size = args.bin_dimension,
-                   box_set = args.boxset,
-                   heightMap = args.heightMap)
     else:
         assert False
 

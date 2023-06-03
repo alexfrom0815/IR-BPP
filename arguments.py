@@ -102,7 +102,6 @@ def get_args():
     parser.add_argument('--globalView', type=bool, default = False)
     parser.add_argument('--resolutionA', type=float, default = 0.02)
     parser.add_argument('--resolutionH', type=float, default = 0.01)
-    parser.add_argument('--doubleRot', action='store_true')
     parser.add_argument('--model', type=str, default=None)
 
     args = parser.parse_args()

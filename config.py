@@ -5,7 +5,6 @@ device = 0
 # envName = "Boxpack-v0"
 # envName = "Ir-v0"
 envName = "Physics-v0"
-triangleNum = 256
 seed = 6
 num_processes = 2
 boxset = []
@@ -147,7 +146,6 @@ else:
     test_name = './data/final_data/{}/random_cate_half.pt'.format(data_name)
 maxBatch = 1
 randomConvex = False
-LFSS = False
 heightResolution = 0.01
 
 packed_holder = 100
