@@ -32,9 +32,7 @@ data_name = 'tetris3D_tolerance_middle_mass'
 # data_name = 'IR_concaveArea3_mass'
 # data_name = 'IR_abc_good'
 
-# data_name = 'IR_mix_nomin'
-# data_name = 'tetris3D_tolerance_middle_nomin'
-# data_name = 'IR_concaveArea3_nomin'
+
 
 objPath = './data/final_data/{}/vhacd_with_pose'.format(data_name)
 pointCloud  = './data/final_data/{}/pointCloud_with_pose'.format(data_name)

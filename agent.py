@@ -24,7 +24,6 @@ class Agent():
     self.discount = args.discount
     self.norm_clip = args.norm_clip
 
-    # shapeArray = shapeProcessing(shapeDict, args)
     shapeArray = torch.tensor(args.shapeArray).type(torch.float).share_memory_()
     network = DQNP
     self.online_net = network(args, self.action_space, shapeArray).to(device=args.device).share_memory()

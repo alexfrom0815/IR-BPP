@@ -13,10 +13,7 @@ import torch
 from matplotlib import pyplot as plt
 import transforms3d
 import pybullet as p
-import math
 import gym
-import torch.nn as nn
-
 
 def load_mesh_plain(path, DownRotNum, ZRotNum, init = 'Centroid', scale = 1):
     mesh = trimesh.load(path)
