@@ -78,8 +78,6 @@ def main(args):
             args.dataSample = 'category'
         else:
             args.dataSample = 'instance'
-        print('args.dicPath', args.dicPath)
-
 
     args.enable_rotation = config.enable_rotation
     args.categories = len(torch.load(args.dicPath))

@@ -7,7 +7,6 @@ import transforms3d
 from .Interface import Interface
 from .IRcreator import RandomItemCreator, LoadItemCreator, RandomInstanceCreator, RandomCateCreator
 from .space import Space
-import threading
 from .cvTools import getConvexHullActions
 import random
 
@@ -26,23 +25,19 @@ class PackingGame(gym.Env):
                  DownRotNum=None,
                  ZRotNum=None,
                  heightMap = False,
-                 useHeightMap=False,
                  visual = False,
-                 timeStr = None,
                  globalView = False, # if we cancel the global view, the heightmap need to be re-scanned.
                  shotInfo=None,
                  actionType='Uniform', # Uniform
                  simulation=True,
                  scale = [100,100,100],
                  selectedAction = False,
-                 convexAction = None,
                  previewNum = 1,
                  dataSample='instance',
                  maxBatch = 2,
                  meshScale = 1,
                  heightResolution = 0.01,
                  **kwargs):
-
 
         self.resolutionAct = resolutionAct
         self.bin_dimension = np.round(bin_dimension, decimals=6)
@@ -53,7 +48,6 @@ class PackingGame(gym.Env):
         self.interface = Interface(bin=self.bin_dimension, foldername = objPath,
                                    visual=visual, scale = self.scale, simulationScale=self.meshScale)
         self.shapeDict = shapeDict
-        # print('shapeDictLen',len(self.shapeDict))
         self.infoDict  = infoDict
         self.dicPath = load(dicPath)
         self.rangeX_A, self.rangeY_A = np.ceil(self.bin_dimension[0:2] / resolutionAct).astype(np.int32)
@@ -61,23 +55,17 @@ class PackingGame(gym.Env):
         self.DownRotNum = DownRotNum
         self.ZRotNum    = ZRotNum
         self.packed_holder = packed_holder
-        self.useHeightMap = useHeightMap
         self.heightMapPre = heightMap
         self.globalView = globalView
         self.actionType = actionType
         self.selectedAction = selectedAction
-        self.convexAction = convexAction
-        if self.convexAction is not None:
-            assert self.selectedAction
         self.chooseItem = previewNum > 1
         self.previewNum = previewNum
 
         self.simulation = simulation
         self.item_vec = np.zeros((1000, 9))
-        if self.heightMapPre: assert useHeightMap
 
-        if self.useHeightMap:
-            self.space = Space(self.bin_dimension, resolutionAct, resolutionH, False,  self.DownRotNum, self.ZRotNum, shotInfo, self.scale)
+        self.space = Space(self.bin_dimension, resolutionAct, resolutionH, False,  self.DownRotNum, self.ZRotNum, shotInfo, self.scale)
         if test and dataname is not None:
             self.item_creator = LoadItemCreator(data_name=dataname)
         else:
@@ -102,10 +90,7 @@ class PackingGame(gym.Env):
         self.transformation = np.array(self.transformation)
 
         self.rotNum = self.ZRotNum * self.DownRotNum
-        if self.selectedAction:
-            self.act_len = self.selectedAction
-        else:
-            self.act_len = self.rangeX_A * self.rangeY_A * self.rotNum
+        self.act_len = self.selectedAction
 
         if self.chooseItem:
             self.act_len = self.previewNum
@@ -127,7 +112,6 @@ class PackingGame(gym.Env):
                                                 shape=(self.obs_len,))
         self.action_space = gym.spaces.Discrete(self.act_len)
 
-        self.timeStr = timeStr
         self.tolerance = 0 # defalt 0.002
 
         self.episodeCounter = 0
@@ -138,7 +122,6 @@ class PackingGame(gym.Env):
 
         self.test = test
 
-        self.timeStr = time.strftime('%Y.%m.%d-%H-%M-%S', time.localtime(time.time()))
         self.maxBatch = maxBatch
         self.heightResolution = heightResolution
 
@@ -153,8 +136,7 @@ class PackingGame(gym.Env):
         self.interface.close()
 
     def reset(self, index = None):
-        if self.useHeightMap:
-            self.space.reset()
+        self.space.reset()
 
         self.episodeCounter = (self.episodeCounter + 1) % self.updatePeriod
         if self.episodeCounter == 0:
@@ -177,10 +159,6 @@ class PackingGame(gym.Env):
         for idx in range(self.item_idx):
             totalVolume += self.infoDict[int(self.item_vec[idx][0])][0]['volume']
         return totalVolume / np.prod(self.bin_dimension)
-
-    def get_occupancy(self):
-        heightMapShape = self.space.heightmapC.shape
-        return np.sum(self.space.heightmapC) / (heightMapShape[0] * heightMapShape[1] * self.bin_dimension[2])
 
     def get_item_ratio(self, next_item_ID):
         return self.infoDict[next_item_ID][0]['volume'] / np.prod(self.bin_dimension)
@@ -211,21 +189,17 @@ class PackingGame(gym.Env):
 
 
     def cur_observation(self, genItem = True, draw = False):
-        if self.item_idx != 0 and self.elementWise:
+        if self.item_idx != 0:
             positions, orientations = self.interface.getAllPositionAndOrientation(inner=False)
             self.item_vec[0:self.item_idx, 1:4] = np.array([positions[0:self.item_idx]])
             self.item_vec[0:self.item_idx, 4:8] = np.array([orientations[0:self.item_idx]])
-        self.endSimulation = time.time()
-        self.action_start = time.time()
         if not self.chooseItem:
             if genItem:
                 self.next_item_ID = self.gen_next_item_ID()
             self.next_item_vec[0] = self.next_item_ID
 
-            if self.useHeightMap:
-                naiveMask = self.space.get_possible_position(self.next_item_ID, self.shapeDict[self.next_item_ID], self.selectedAction)
-            else:
-                naiveMask = self.get_possible_position(self.next_item_ID)
+            naiveMask = self.space.get_possible_position(self.next_item_ID, self.shapeDict[self.next_item_ID], self.selectedAction)
+
 
             result = self.next_item_vec.reshape(-1)
 
@@ -237,17 +211,16 @@ class PackingGame(gym.Env):
                 result = np.concatenate((result, self.space.heightmapC.reshape(-1)))
             if self.selectedAction:
                 self.candidates = None
-                if self.convexAction is not None:
-                    self.candidates= getConvexHullActions(self.space.posZValid, self.space.naiveMask,
-                                                                 self.heightResolution)
-                    if self.candidates is not None:
-                        if len(self.candidates) > self.selectedAction:
-                            # sort with height
-                            selectedIndex = np.argsort(self.candidates[:,3])[0: self.selectedAction]
-                            self.candidates = self.candidates[selectedIndex]
-                        elif len(self.candidates) < self.selectedAction:
-                            dif = self.selectedAction - len(self.candidates)
-                            self.candidates = np.concatenate((self.candidates, np.zeros((dif, 5))), axis=0)
+                self.candidates= getConvexHullActions(self.space.posZValid, self.space.naiveMask,
+                                                             self.heightResolution)
+                if self.candidates is not None:
+                    if len(self.candidates) > self.selectedAction:
+                        # sort with height
+                        selectedIndex = np.argsort(self.candidates[:,3])[0: self.selectedAction]
+                        self.candidates = self.candidates[selectedIndex]
+                    elif len(self.candidates) < self.selectedAction:
+                        dif = self.selectedAction - len(self.candidates)
+                        self.candidates = np.concatenate((self.candidates, np.zeros((dif, 5))), axis=0)
 
                 if self.candidates is None:
                     poszFlatten = self.space.posZValid.reshape(-1)
@@ -263,25 +236,11 @@ class PackingGame(gym.Env):
             self.next_k_item_ID = self.item_creator.preview(self.previewNum)
             result = np.concatenate((np.array(self.next_k_item_ID), self.space.heightmapC.reshape(-1)))
 
-        self.action_stop = time.time()
         return result
 
     def action_to_position(self, action):
         rotIdx, lx, ly = self.candidates[action][0:3].astype(np.int)
         return rotIdx, np.round((lx * self.resolutionAct, ly * self.resolutionAct, self.bin_dimension[2]), decimals=6), (lx,ly)
-
-    def get_possible_position(self, next_item_ID):
-
-        naiveMask = np.zeros((self.rotNum, self.rangeX_A, self.rangeX_A))
-
-        for rotIdx in range(self.rotNum):
-            extents = self.infoDict[next_item_ID][rotIdx]['extents']
-            boundingSize = np.round(extents, decimals=6)
-            boundingSizeInt = np.ceil(boundingSize / self.resolutionAct).astype(np.int32)
-            rangeX_O, rangeY_O = boundingSizeInt[0], boundingSizeInt[1]
-            naiveMask[rotIdx, 0:self.rangeX_A - rangeX_O + 1, 0:self.rangeX_A - rangeY_O + 1] = 1
-
-        return naiveMask
 
     def prejudge(self, rotIdx, translation, naiveMask):
         extents = self.shapeDict[self.next_item_ID][rotIdx].extents
@@ -296,21 +255,15 @@ class PackingGame(gym.Env):
     def step(self, action):
 
         rotIdx, targetFLB, coordinate = self.action_to_position(action)
-        self.startSimulation = time.time()
-
         rotation = self.transformation[int(rotIdx)]
 
         valid = False
         succeeded = self.prejudge(rotIdx, targetFLB, self.space.naiveMask)
-        color = [1,0,0,1] if not succeeded else None
         id = self.interface.addObject(self.dicPath[self.next_item_ID][0:-4], targetFLB = targetFLB, rotation = rotation,
-                                      linearDamping = 0.5, angularDamping = 0.5, color = color)
-        if self.useHeightMap:
-            # height = self.space.get_lowest_z(self.next_item_ID, self.shapeDict[self.next_item_ID], rotIdx, coordinate)
-            height = self.space.posZmap[rotIdx, coordinate[0], coordinate[1]]
-            self.interface.adjustHeight(id , height + self.tolerance)
-        else:
-            assert False
+                                      linearDamping = 0.5, angularDamping = 0.5)
+
+        height = self.space.posZmap[rotIdx, coordinate[0], coordinate[1]]
+        self.interface.adjustHeight(id , height + self.tolerance)
 
         if succeeded:
             if self.simulation:
@@ -322,18 +275,14 @@ class PackingGame(gym.Env):
                 succeeded, valid = self.interface.simulateHeight(id)
 
             if not self.globalView:
-                # self.interface.secondSimulation(maxBatch=1)
                 self.interface.disableObject(id)
 
         bounds = self.interface.get_wraped_AABB(id, inner=False)
         positionT, orientationT = self.interface.get_Wraped_Position_And_Orientation(id, inner=False)
-
         self.packed.append([self.next_item_ID, self.dicPath[self.next_item_ID], positionT, orientationT])
         self.packedId.append(id)
 
-
         if not succeeded:
-
             if self.globalView and self.test:
                 for replayIdx, idNow in enumerate(self.packedId):
                     positionT, orientationT = self.interface.get_Wraped_Position_And_Orientation(idNow, inner=False)
@@ -341,45 +290,35 @@ class PackingGame(gym.Env):
                     self.packed[replayIdx][3] = orientationT
 
             reward = 0.0
-
             info = {'counter': self.item_idx,
                     'ratio': self.get_ratio(),
-                    'Occupancy': self.get_occupancy(),
                     'Valid': True,
-                    'MINZ': np.argmin(self.space.posZValid)}
+                    }
             observation = self.cur_observation()
             return observation, reward, True, info
 
         if valid:
-            if self.useHeightMap:
-                if self.globalView:
-                    self.space.shot_whole()
-                else:
-                    # self.space.place_item(bounds, self.interface.defaultScale[0])
-                    self.space.place_item_trimesh(self.shapeDict[self.next_item_ID][0], (positionT, orientationT), (bounds, self.next_item_ID))
-            # draw_heatmap(self.space.heightmapC)
+            if self.globalView:
+                self.space.shot_whole()
+            else:
+                self.space.place_item_trimesh(self.shapeDict[self.next_item_ID][0], (positionT, orientationT), (bounds, self.next_item_ID))
+
             self.item_vec[self.item_idx, 0] = self.next_item_ID
             self.item_vec[self.item_idx, -1] = 1
-
             item_ratio = self.get_item_ratio(self.next_item_ID)
             reward = item_ratio * 10
-
-            # optional, to help the packing result more even
-            # reward -= np.var(self.space.heightmapC)
-
             self.item_idx += 1
             self.item_creator.update_item_queue(self.orderAction)
             self.item_creator.generate_item()  # add a new box to the list
             observation = self.cur_observation()
-            return observation, reward, False, {'Valid': True, 'MINZ': np.argmin(self.space.posZValid)}
+            return observation, reward, False, {'Valid': True}
         else:
-            print('Invalid call')
+            # Invalid call
             self.packed.pop()
             self.packedId.pop()
-
             delId = self.interface.objs.pop()
             self.interface.removeBody(delId)
             self.item_creator.update_item_queue(self.orderAction)
             self.item_creator.generate_item()  # Add a new box to the list
             observation = self.cur_observation()
-            return observation, 0.0, False, {'Valid': False, 'MINZ': np.argmin(self.space.posZValid)}
+            return observation, 0.0, False, {'Valid': False}

@@ -65,9 +65,9 @@ class NoisyLinear(nn.Module):
       return F.linear(input, self.weight_mu, self.bias_mu)
 
 
-class DQNP(nn.Module):
+class DQNBPP(nn.Module):
   def __init__(self, args, action_space, shapeArray):
-    super(DQNP, self).__init__()
+    super(DQNBPP, self).__init__()
     assert args.selectedAction
     self.args = args
     self.atoms = args.atoms # c51
@@ -256,14 +256,12 @@ class DQNP(nn.Module):
       return embeddings, graph_embed
 
 
-  def forward(self, x, log=False,  getCL = False):
+  def forward(self, x, log=False):
 
-      loss_cl = None
       if self.args.previewNum > 1:
         x, xGlobal = self.embed_physic_k_shape_with_gat(x)
       else:
         x, xGlobal = self.embed_physic_only_with_heightmap(x)
-
       v = self.fc_z_v(F.relu(self.fc_h_v(xGlobal)))  # Value stream
       a = self.fc_z_a(F.relu(self.fc_h_a(x)))  # Advantage stream
       v, a = v.view(-1, 1, self.atoms), a.view(-1, self.action_space, self.atoms)
@@ -272,15 +270,10 @@ class DQNP(nn.Module):
         q = F.log_softmax(q, dim=2)  # Log probabilities with action over second dimension
       else:
         q = F.softmax(q, dim=2)  # Probabilities with action over second dimension
-
       self.forwardCounter += 1
       if self.forwardCounter == 1000:
           self.updateShapeArray()
-
-      if getCL:
-          return q, loss_cl
-      else:
-          return q
+      return q
 
   def reset_noise(self):
     for name, module in self.named_children():

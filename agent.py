@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
 import os
-import time
 
 import numpy as np
 import torch
 from torch import optim
 from torch.nn.utils import clip_grad_norm_
-from tools import shapeProcessing
-from model import DQNP
+from model import DQNBPP
 import math
+
+# Finished
 
 class Agent():
   def __init__(self, args):
@@ -25,13 +24,12 @@ class Agent():
     self.norm_clip = args.norm_clip
 
     shapeArray = torch.tensor(args.shapeArray).type(torch.float).share_memory_()
-    network = DQNP
+    network = DQNBPP
     self.online_net = network(args, self.action_space, shapeArray).to(device=args.device).share_memory()
 
     if args.model:  # Load pretrained model if provided
       if os.path.isfile(args.model):
         state_dict = torch.load(args.model, map_location='cpu')  # Always load tensors onto CPU by default, will shift to GPU if necessary
-
         self.online_net.load_state_dict(state_dict)
         print("Loading pretrained model: " + args.model)
       else:  # Raise error if incorrect model path provided
@@ -71,7 +69,6 @@ class Agent():
     segment_size = int(self.batch_size/len(memory))
     idxs, states, actions, returns, next_states, nonterminals, weights = [],[],[],[],[],[],[]
 
-
     for mem in memory:
       idx, state, action, ret, next_state, nonterminal, weight = mem.sample(segment_size)
       idxs.append(idx), states.append(state), actions.append(action), returns.append(ret)
@@ -85,7 +82,7 @@ class Agent():
     weights = torch.cat(weights, 0)
 
     # Calculate current state probabilities (online network noise already sampled)
-    log_ps, loss_cl = self.online_net(states, log=True, getCL = True)  # Log probabilities log p(s_t, ·; θonline)
+    log_ps= self.online_net(states, log=True)  # Log probabilities log p(s_t, ·; θonline)
     log_ps_a = log_ps[range(self.batch_size), actions]  # log p(s_t, a_t; θonline)
 
     with torch.no_grad():
@@ -118,8 +115,6 @@ class Agent():
       m.view(-1).index_add_(0, (u + offset).view(-1), (pns_a * (b - l.float())).view(-1))  # m_u = m_u + p(s_t+n, a*)(b - l)
 
     loss = -torch.sum(m * log_ps_a, 1)
-    if loss_cl is not None:
-      loss = loss + 1 * loss_cl # Cross-entropy loss (minimises DKL(m||p(s_t, a_t)))
     self.online_net.zero_grad()
     (weights * loss).mean().backward()  # Backpropagate importance-weighted minibatch loss
     clip_grad_norm_(self.online_net.parameters(), self.norm_clip)  # Clip gradients by L2 norm
@@ -128,7 +123,6 @@ class Agent():
     for i in range(len(memory)):
       memory[i].update_priorities(idxs[i], loss[i * segment_size : (i+1) * segment_size].detach().cpu())  # Update priorities of sampled transitions
     return loss
-
 
   def update_target_net(self):
     self.target_net.load_state_dict(self.online_net.state_dict())

@@ -196,7 +196,6 @@ class Interface:
                   color = None
                   ):
         if scale is None: scale = self.defaultScale
-        # assert self.simulationScale == 1
 
         targetFLB = np.array(targetFLB) * scale
         if name in self.shapeMap:
