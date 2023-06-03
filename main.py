@@ -146,7 +146,6 @@ def main(args):
     args.shapeArray = shapeProcessing(args.shapeDict, args)
 
     args.maxBatch = config.maxBatch
-    args.randomConvex = config.randomConvex
 
 
     envs, spaces, obs_len = make_vec_envs(args, './logs/runinfo', True)

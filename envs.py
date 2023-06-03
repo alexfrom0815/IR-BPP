@@ -63,7 +63,6 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets, args):
                                test = args.test,
                                dataname = args.test_name,
                                maxBatch=args.maxBatch,
-                               randomConvex=args.randomConvex,
                                meshScale=args.meshScale,
                                heightResolution = args.heightResolution
                                )
@@ -148,7 +147,6 @@ def make_vec_envs(args,
                        test = args.test,
                        dataname=args.test_name,
                        maxBatch = args.maxBatch,
-                       randomConvex = args.randomConvex,
                        meshScale=args.meshScale,
                        heightResolution = args.heightResolution
                        )

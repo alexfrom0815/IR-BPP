@@ -43,7 +43,6 @@ class PackingGame(gym.Env):
                  previewNum = 1,
                  dataSample='instance',
                  maxBatch = 2,
-                 LFSS = False,
                  randomConvex = False,
                  meshScale = 1,
                  heightResolution = 0.01,
@@ -178,7 +177,6 @@ class PackingGame(gym.Env):
         # self.figure8 = []
         self.timeStr = time.strftime('%Y.%m.%d-%H-%M-%S', time.localtime(time.time()))
         self.maxBatch = maxBatch
-        self.randomConvex = randomConvex
         self.heightResolution = heightResolution
 
     def seed(self, seed=None):
@@ -297,19 +295,13 @@ class PackingGame(gym.Env):
                     self.candidates, save = getConvexHullActions(self.space.posZValid, self.space.naiveMask,
                                                                  self.convexAction,
                                                                  self.heightResolution,
-                                                           draw=[draw, len(self.packed)])
+                                                                 draw=draw)
                     if save:
                         self.save = True
                     if self.candidates is not None:
                         if len(self.candidates) > self.selectedAction:
                             # sort with height
-                            if not self.randomConvex:
-                                selectedIndex = np.argsort(self.candidates[:,3])[0: self.selectedAction]
-                            # sort randomly
-                            else:
-                                selectedIndex = np.arange(len(self.candidates))
-                                np.random.shuffle(selectedIndex)
-                                selectedIndex = selectedIndex[0:self.selectedAction]
+                            selectedIndex = np.argsort(self.candidates[:,3])[0: self.selectedAction]
                             self.candidates = self.candidates[selectedIndex]
                         elif len(self.candidates) < self.selectedAction:
                             dif = self.selectedAction - len(self.candidates)

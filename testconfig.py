@@ -166,32 +166,13 @@ if envName == 'Physics-v0':
     boxPack = False
     objVecLen = 9
     categories = 4
-    # objPath = './data/datas/{}_vhacd'.format(triangleNum)
-    # objPath = './data/datas/{}_rescale_vhacd'.format(triangleNum)
-    # objPath = './data/datas/BoxMeshTolerance_vhacd'
-    # objPath = './data/datas/BlockMeshToleranceLarge_vhacd'
-    # objPath = './data/datas/BlockMeshToleranceMiddle_vhacd'
-    # objPath = './data/datas/BlockMeshTolerance_vhacd'
-    # objPath = './data/datas/256_rescale_025_050_vhacd'
-    # objPath = './data/datas/BlockL_vhacd'
-    # objPath = './data/datas/256_extent_scale_3_vhacd'
-    # objPath = './data/datas/tetris3D_tolerance_vhacd'
-    # objPath = './data/datas/tetris3D_tolerance_middle_vhacd'
-    # objPath = './data/datas/tetris3D_tolerance_large_vhacd'
-    # objPath = './data/datas/BlockLInUse_mass_vhacd'
 
-    # data_name = 'IR_apc_data'
-    # data_name = 'IR_apc_mass'
-    # data_name = 'IR_concaveArea2_mass'
 
     # data_name = 'IR_mix_mass'
     # data_name = 'tetris3D_tolerance_middle_mass'
     # data_name = 'IR_concaveArea3_mass'
     data_name = 'IR_abc_good'
 
-    # data_name = 'IR_mix_nomin'
-
-    # globalView = False
     globalView = True
     points_sigma = 0.0 # 0.00 0.01 0.03 0.05 0.1
 
@@ -227,9 +208,6 @@ if envName == 'Physics-v0':
         else:
             test_name = './data/final_data/{}/random_cate.pt'.format(data_name)
 
-    # dicPath = './data/final_data/{}/dicDraw.pt'.format(data_name)
-    # test_name = './data/final_data/{}/random_draw.pt'.format(data_name)
-
     if 'IR_mix' in data_name:
         assert 'dicPathHalf' in dicPath
         assert  'half' in test_name
@@ -238,13 +216,8 @@ if envName == 'Physics-v0':
     else:
         bin_dimension = [0.32, 0.32, 0.30]
 
-    # resolutionA = 0.04
     resolutionA = 0.02
-    # resolutionA = 0.01
     resolutionH = 0.01
-    # resolutionH = 0.005
-    # resolutionH = 0.01
-    # resolutionH = 0.01
 
     if  'Block' in dicPath or 'Box' in dicPath:
     # if  'Block' in dicPath or 'Box' in dicPath or 'tetris3D' in dicPath:
@@ -333,38 +306,6 @@ if envName == 'Physics-v0':
 
         # orderModelPath = './checkpoints/IR_abc_good_convex_var_hier_10_51_53_order.pt'
         # locModelPath   = './checkpoints/IR_abc_good_convex_var_hier_10_51_53_loc.pt'
-
-
-elif envName == 'Ir-v0':
-    objPath = './data/datas/{}'.format(triangleNum)
-    boxPack = False
-    if boxPack:
-        bin_dimension = [10,10,10]
-        resolutionA = 1
-    else:
-        bin_dimension = [0.32, 0.32, 0.3]
-        resolutionA = 0.02
-
-
-    categories = 20
-    boundingBoxVec = False
-    DownRotNum = 6 # Max: 6
-    ZRotNum    = 4 # Max: 4/8
-    if boundingBoxVec:
-        objVecLen = 9
-    else:
-        objVecLen = 20
-    heightMap = True
-
-elif envName == 'Boxpack-v0':
-    bin_dimension = [10,10,10]
-    for i in range(int(bin_dimension[0] / 2)):
-        for j in range(int(bin_dimension[1] / 2)):
-            for k in range(int(bin_dimension[2] / 2)):
-                boxset.append([i + 1, j + 1, k + 1])
-    boxPack = True
-    boundingBoxVec = True
-    heightMap = False
 
 packed_holder = 100
 enable_rotation = True

@@ -83,7 +83,7 @@ def convexHulls(posZMap, mask, actionType,  heightResolution = 0.01, draw = Fals
     uniqueHeight = np.unique(mapInt)
     allCandidates = []
     save = False
-    if draw[0]:
+    if draw:
         mapO = posZMap // (1 / 255)
         mapO = mapO.astype(np.uint8)
         mapO = cv2.applyColorMap(mapO, cv2.COLORMAP_JET)
@@ -128,7 +128,7 @@ def convexHulls(posZMap, mask, actionType,  heightResolution = 0.01, draw = Fals
             if defects is not None:
                 allCandidates.append(defects.reshape(-1,2))
 
-            if draw[0]:
+            if draw:
                 origin = cv2.cvtColor(check, cv2.COLOR_GRAY2BGR)
                 # Draw contour
                 canvasC = cv2.cvtColor(check, cv2.COLOR_GRAY2BGR)
@@ -149,15 +149,6 @@ def convexHulls(posZMap, mask, actionType,  heightResolution = 0.01, draw = Fals
                     for singD in drawD:
                         cv2.circle(canThisLayer, tuple(singD.reshape(2).tolist()), radius=1, color=(0, 255, 0))
 
-
-                if len(candidate) > 6 and draw[1] < 5 and (np.sum(check / 255) / np.prod(check.shape)) > 0.2 and h == 0:
-                    cv2.imshow('all', np.concatenate((mapO, # 这里是 heightmap
-                                                      mapDraw, # 包含所有的动作候选， 对应一个旋转下
-                                                      origin,  # 感兴趣的区域
-                                                      canvasC, # 轮廓
-                                                      canvasH, # 凸包
-                                                      canThisLayer), axis=1))
-                    cv2.waitKey(0)
     V = None
     if len(allCandidates) != 0:
         allCandidates = np.concatenate(allCandidates, axis=0)
