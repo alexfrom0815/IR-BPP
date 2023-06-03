@@ -26,7 +26,7 @@ class Agent():
 
     # shapeArray = shapeProcessing(shapeDict, args)
     shapeArray = torch.tensor(args.shapeArray).type(torch.float).share_memory_()
-    if args.previewNum > 1 or args.selectedAction:
+    if args.previewNum > 1:
       network = DQNP
     else:
       network = DQN
@@ -35,7 +35,7 @@ class Agent():
     if args.model:  # Load pretrained model if provided
       if os.path.isfile(args.model):
         state_dict = torch.load(args.model, map_location='cpu')  # Always load tensors onto CPU by default, will shift to GPU if necessary
-        print(args.level, args.model)
+
         self.online_net.load_state_dict(state_dict)
         print("Loading pretrained model: " + args.model)
       else:  # Raise error if incorrect model path provided
