@@ -75,9 +75,6 @@ class DQNP(nn.Module):
     self.physics = False if args.envName != 'Physics-v0' else True
     self.elementWise = args.elementWise
 
-    self.preEncoder = args.shapePreType == 'PreTrain'
-
-
     zDim = 256
     self.zDim = zDim
     init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0), nn.init.calculate_gain('leaky_relu'))
@@ -114,25 +111,11 @@ class DQNP(nn.Module):
             init_(nn.Conv2d(32, 1, 3, stride=1, padding=1)),  # 16 -> 16
             nn.LeakyReLU())
 
-    if self.preEncoder:
-        self.shapeEncoder = nn.Sequential()
-        self.shapeEncoder.add_module('linear1', init_(nn.Linear(512, 128)))
-        self.shapeEncoder.add_module('relu1', nn.LeakyReLU())
-    elif self.args.shapePreType == 'SurfacePointsEncode':
-        self.shapeEncoder = ResnetPointnet(c_dim=128)
-        if args.encoderPath is not None:
-            print('Load encoder from', args.encoderPath)
-            state_dict = torch.load(args.encoderPath, map_location='cpu')
-            self.shapeEncoder.load_state_dict(state_dict)
-        for param in self.shapeEncoder.parameters():
-            param.requires_grad = False
-        self.shapeEncoder.eval()
-    else:
-        self.shapeEncoder = nn.Sequential()
-        self.shapeEncoder.add_module('linear1', init_(nn.Linear(3, 128)))
-        self.shapeEncoder.add_module('relu1', nn.LeakyReLU())
-        self.shapeEncoder.add_module('linear2', init_(nn.Linear(128, 128)))
-        self.shapeEncoder.add_module('relu2', nn.LeakyReLU())
+    self.shapeEncoder = nn.Sequential()
+    self.shapeEncoder.add_module('linear1', init_(nn.Linear(3, 128)))
+    self.shapeEncoder.add_module('relu1', nn.LeakyReLU())
+    self.shapeEncoder.add_module('linear2', init_(nn.Linear(128, 128)))
+    self.shapeEncoder.add_module('relu2', nn.LeakyReLU())
 
     self.init_ems_embed = nn.Sequential(
         init_(nn.Linear(4, 32)),
@@ -152,7 +135,6 @@ class DQNP(nn.Module):
         init_(nn.Linear(256, self.embedding_dim)))
 
     if args.previewNum > 1:
-    # if True:
         self.embedder = GraphAttentionEncoder(
             n_heads=1,
             embed_dim=self.embedding_dim,
@@ -205,14 +187,8 @@ class DQNP(nn.Module):
       else:
           nextShape = self.shapeArray[next_item_ID, 0].to(self.args.device)
 
-      assert not self.preEncoder
-      if  self.args.shapePreType == 'SurfacePointsEncode':
-          self.shapeEncoder.eval()
-          shape_feature = self.shapeEncoder(nextShape)
-          shape_feature = F.normalize(shape_feature, dim=1)
-      else:
-          shape_feature = self.shapeEncoder(nextShape)
-          shape_feature = torch.max(shape_feature, dim=1)[0]
+      shape_feature = self.shapeEncoder(nextShape)
+      shape_feature = torch.max(shape_feature, dim=1)[0]
 
       ems_inputs = candidates.contiguous().view(batchSize, candidates_size, -1)
       ems_embedded_inputs = self.init_ems_embed(ems_inputs)
@@ -231,90 +207,6 @@ class DQNP(nn.Module):
 
       return embeddings, graph_embed
 
-  def embed_physic_only_with_heightmap_advantage(self, x):
-      batchSize = x.shape[0]
-      next_item, actionMask, heightMap, candidates = observation_decode_irregular(x, self.args)
-      graph_size = candidates.size(1)
-
-      valid_mask = actionMask
-      invalid_ones = 1 - valid_mask  # mask 为1的地方是被删掉的地方
-
-      candidates_size = candidates.size(1)
-      heightMap = heightMap.reshape((batchSize, 1, self.MapLength, self.MapLength))
-      map_feature = self.heightEncoder(heightMap).reshape((batchSize, -1))
-
-      next_item_ID = next_item[:, 0].long()
-      if self.args.shapePreType == 'SurfacePointsRandom' or self.args.shapePreType == 'SurfacePointsEncode':
-          nextShape = self.shapeArray[next_item_ID]
-          indices = np.random.randint(self.shapeArray.shape[1], size=self.args.samplePointsNum)  # 这里是不是最好是不重复的元素啊
-          # indices = self.args.globalIndices
-          nextShape = nextShape[:, indices].to(self.args.device)
-      else:
-          nextShape = self.shapeArray[next_item_ID, 0].to(self.args.device)
-
-      assert not self.preEncoder
-      if  self.args.shapePreType == 'SurfacePointsEncode':
-          self.shapeEncoder.eval()
-          shape_feature = self.shapeEncoder(nextShape)
-          shape_feature = F.normalize(shape_feature, dim=1)
-      else:
-          shape_feature = self.shapeEncoder(nextShape)
-          shape_feature = torch.max(shape_feature, dim=1)[0]
-
-      ems_inputs = candidates.contiguous().view(batchSize, candidates_size, -1)
-      ems_embedded_inputs = self.init_ems_embed(ems_inputs)
-      init_embedding = torch.cat((shape_feature.repeat(1, candidates_size).reshape(batchSize, candidates_size, -1),
-                                  map_feature.repeat((1, candidates_size)).reshape(batchSize, candidates_size, -1),
-                                  ems_embedded_inputs), dim=2).view(batchSize * candidates_size, -1)
-      init_embedding = self.oneMore(init_embedding).view(batchSize, candidates_size, self.embedding_dim)
-
-      # embeddings = init_embedding
-
-      embeddings = torch.cat((shape_feature, map_feature), dim=1).view(batchSize, -1)
-      graph_embed = self.noAction(embeddings)
-
-      # init_embedding_shape = init_embedding.shape
-      # transEmbedding = init_embedding.view((batchSize, graph_size, -1))
-      # invalid_ones = invalid_ones.view(init_embedding_shape[0], init_embedding_shape[1], 1).expand(init_embedding_shape).bool()
-      # transEmbedding[invalid_ones] = 0
-      # graph_embed = transEmbedding.view(init_embedding_shape).mean(1)  # 其实这里的取均值一定程度上相当于相加了
-
-      return init_embedding, graph_embed
-
-  def embed_physic_k_shape(self, x):
-      batchSize = x.shape[0]
-
-      next_k_shapes_ID, heightMap = observation_decode_irregular_k_shape(x, self.args)
-      graph_size = next_k_shapes_ID.size(1)
-
-      candidates_size = graph_size
-      heightMap = heightMap.reshape((batchSize, 1, self.MapLength, self.MapLength))
-      map_feature = self.heightEncoder(heightMap).reshape((batchSize, -1))
-
-      shapeIdx = next_k_shapes_ID.detach().long().reshape(-1)
-
-      if self.args.shapePreType == 'SurfacePointsRandom' or self.args.shapePreType == 'SurfacePointsEncode':
-          next_k_shapes = self.shapeArray[shapeIdx]
-          indices = np.random.randint(self.shapeArray.shape[1], size=self.args.samplePointsNum)  # 这里是不是最好是不重复的元素啊
-          next_k_shapes = next_k_shapes[:, indices].to(self.args.device)
-      else:
-          rotIdx = torch.zeros_like(shapeIdx).long()
-          next_k_shapes = self.shapeArray[shapeIdx, rotIdx].float().to(self.args.device)
-
-      shape_feature = self.shapeEncoder(next_k_shapes)
-      if not self.preEncoder:
-        shape_feature = torch.max(shape_feature, dim=1)[0]
-
-      init_embedding = torch.cat((shape_feature.reshape(batchSize, candidates_size, -1),
-                                  map_feature.repeat((1, candidates_size)).reshape(batchSize, candidates_size, -1)), dim=2).view(batchSize * candidates_size, -1)
-      init_embedding = self.noAction(init_embedding).view(batchSize, candidates_size, self.embedding_dim)
-      embeddings = init_embedding
-      embedding_shape = embeddings.shape
-
-      transEmbedding = embeddings.view((batchSize, graph_size, -1))
-      graph_embed = transEmbedding.view(embedding_shape).mean(1)  # 其实这里的取均值一定程度上相当于相加了
-
-      return embeddings, graph_embed
 
   def embed_physic_k_shape_with_gat(self, x):
       batchSize = x.shape[0]
@@ -335,8 +227,8 @@ class DQNP(nn.Module):
           rotIdx = torch.zeros_like(shapeIdx).long()
           next_k_shapes = self.shapeArray[shapeIdx, rotIdx].float().to(self.args.device)
       shape_feature = self.shapeEncoder(next_k_shapes)
-      if not self.preEncoder:
-        shape_feature = torch.max(shape_feature, dim=1)[0]
+
+      shape_feature = torch.max(shape_feature, dim=1)[0]
 
       init_embedding = torch.cat((shape_feature.reshape(batchSize, candidates_size, -1),
                                   map_feature.repeat((1, candidates_size)).reshape(batchSize, candidates_size, -1)), dim=2).view(batchSize * candidates_size, -1)
@@ -347,54 +239,6 @@ class DQNP(nn.Module):
 
       transEmbedding = embeddings.view((batchSize, graph_size, -1))
       graph_embed = transEmbedding.view(embedding_shape).mean(1)
-      return embeddings, graph_embed
-
-  def embed_physic_with_heightmap_and_k_shape(self, x):
-      batchSize = x.shape[0]
-
-      next_item, actionMask, heightMap, candidates, next_k_shapes_ID = observation_decode_irregular_with_k_shape(x, self.args)
-      graph_size = candidates.size(1)
-
-      valid_mask = actionMask
-      invalid_ones = 1 - valid_mask  # mask 为1的地方是被删掉的地方
-
-      candidates_size = candidates.size(1)
-      heightMap = heightMap.reshape((batchSize, 1, self.MapLength, self.MapLength))
-      map_feature = self.heightEncoder(heightMap).reshape((batchSize, -1))
-
-      next_item_ID = next_item[:, 0].long()
-      nextShape = self.shapeArray[next_item_ID, 0].to(self.args.device)
-      selected_shape_feature = self.shapeEncoder(nextShape)
-      if not self.preEncoder:
-        selected_shape_feature = torch.max(selected_shape_feature, dim=1)[0]
-
-      shapeNum = next_k_shapes_ID.shape[-1]
-      allShapeIdx = next_k_shapes_ID.detach().long().reshape(-1)
-      allRotIdx = torch.zeros_like(allShapeIdx).long()
-      next_k_shapes = self.shapeArray[allShapeIdx, allRotIdx].float().to(self.args.device)
-      all_shape_feature = self.shapeEncoder(next_k_shapes)
-      if not self.preEncoder:
-        all_shape_feature = torch.max(all_shape_feature, dim=1)[0]
-      all_shape_feature = all_shape_feature.reshape(batchSize, shapeNum, -1)
-      all_shape_feature = torch.max(all_shape_feature, dim=1)[0]
-
-      ems_inputs = candidates.contiguous().view(batchSize, candidates_size, -1)
-      ems_embedded_inputs = self.init_ems_embed(ems_inputs)
-      init_embedding = torch.cat((selected_shape_feature.repeat(1, candidates_size).reshape(batchSize, candidates_size, -1),
-                                  all_shape_feature.repeat(1, candidates_size).reshape(batchSize, candidates_size,-1),
-                                  map_feature.repeat((1, candidates_size)).reshape(batchSize, candidates_size, -1),
-                                  ems_embedded_inputs), dim=2).view(batchSize * candidates_size, -1)
-      init_embedding = self.oneMore(init_embedding).view(batchSize, candidates_size, self.embedding_dim)
-      # embeddings, _ = self.embedder(init_embedding, mask=invalid_ones, limited=True)  # 前向没啥问题了，然后开始算概率
-      embeddings = init_embedding
-      embedding_shape = embeddings.shape
-
-      transEmbedding = embeddings.view((batchSize, graph_size, -1))
-      invalid_ones = invalid_ones.view(embedding_shape[0], embedding_shape[1], 1).expand(embedding_shape).bool()
-      transEmbedding[invalid_ones] = 0
-      graph_embed = transEmbedding.view(embedding_shape).mean(1)  # 其实这里的取均值一定程度上相当于相加了
-
-
       return embeddings, graph_embed
 
 
