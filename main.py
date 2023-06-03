@@ -9,7 +9,7 @@ from memory import ReplayMemory
 from tensorboardX import SummaryWriter
 import time
 import config
-from tools import backup, registration_envs, load_memory, load_shape_dict, shotInfoPre, shapeProcessing
+from tools import backup, registration_envs,  load_shape_dict, shotInfoPre, shapeProcessing
 from trainer import trainer, trainer_hierarchical
 from arguments import get_args
 from envs import make_vec_envs
@@ -111,8 +111,6 @@ def main(args):
     args.triangleNum = config.triangleNum
     args.objVecLen = config.objVecLen
     # args.dicPath = config.dicPath
-    args.dataAugmentation = config.dataAugmentation
-    args.heuristicExplore = config.heuristicExplore
     args.load_memory_path = config.load_memory_path
     args.save_memory_path = config.save_memory_path
     args.scale = config.scale
@@ -170,7 +168,7 @@ def main(args):
     if not args.hierachical:
     # Create the main Agent for IR pack
         dqn = Agent(args)
-        memNum = args.num_processes * 4 if args.dataAugmentation else args.num_processes
+        memNum = args.num_processes
         memory_capacity = int(args.memory_capacity / memNum)
         mem = [ReplayMemory(args, memory_capacity, obs_len) for _ in range(memNum)]
         trainTool = trainer(writer, timeStr, dqn, mem)
@@ -194,7 +192,7 @@ def main(args):
         locArgs.model = locModelPath
         locDQN = Agent(locArgs)
 
-        memNum = args.num_processes * 4 if args.dataAugmentation else args.num_processes
+        memNum = args.num_processes
         memory_capacity = int(args.memory_capacity / memNum)
         heightmapSize = np.prod(np.ceil(args.bin_dimension[0:2] / args.resolutionH).astype(np.int32))
         order_obs_len = heightmapSize + args.previewNum

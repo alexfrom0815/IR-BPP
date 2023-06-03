@@ -7,7 +7,7 @@ import gym
 from arguments import get_args
 from agent import Agent
 from tools import registration_envs, load_shape_dict, shotInfoPre,\
-    draw_heatmap, test, test_hierachical, make_eval_env, shapeProcessing, backup, test_with_given_traj
+    test, test_hierachical, make_eval_env, shapeProcessing, backup
 import numpy as np
 import testconfig as config
 import time

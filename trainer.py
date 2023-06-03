@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import torch
-from tools import save_memory, dataAugmentation, LinearSchedule, test, get_mask_from_state
+from tools import save_memory,  test, get_mask_from_state
 from tqdm import trange
 from collections import deque
 from tensorboardX import SummaryWriter
@@ -211,12 +211,7 @@ class trainer(object):
 
             for i in range(len(state)):
                 if validSample[i]:
-                    if not args.dataAugmentation:
-                        self.mem[i].append(state[i], action[i], reward[i], done[i])  # Append transition to memory
-                    else:
-                        extendStates, extendActions = dataAugmentation(state[i].cpu().numpy(), action[i].item(), args)
-                        for eI in range(4):
-                            self.mem[i * 4 + eI].append(torch.tensor(extendStates[eI]), torch.tensor(extendActions[eI]), reward[i], done[i])
+                    self.mem[i].append(state[i], action[i], reward[i], done[i])  # Append transition to memory
 
             if args.distributed:
                 counter.value = T
