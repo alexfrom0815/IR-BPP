@@ -8,8 +8,7 @@ import torch
 from torch import optim
 from torch.nn.utils import clip_grad_norm_
 from tools import shapeProcessing
-from model import DQN
-from model_pointer import DQNP
+from model import DQN, DQNP
 import math
 
 class Agent():

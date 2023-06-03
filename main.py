@@ -79,7 +79,7 @@ def main(args):
             args.dataSample = 'instance'
         print('args.dicPath', args.dicPath)
 
-    # args.objPath = config.objPath if args.data_name is None else args.objPath
+
     args.enable_rotation = config.enable_rotation
     args.categories = len(torch.load(args.dicPath))
 
@@ -129,14 +129,11 @@ def main(args):
     # args.dataSample = config.dataSample if args.data_name is None else args.dataSample
     assert 'vhacd' in  args.objPath
 
-    if args.envName != "Physics-v0":
-        args.shapeDict = load_shape_dict(args)
-        args.physics = False
-    else:
-        if config.originShape:
-            args.originDict = load_shape_dict(args, origin = True, scale=args.meshScale)
-        args.shapeDict, args.infoDict = load_shape_dict(args, True,  scale=args.meshScale)
-        args.physics = True
+
+    if config.originShape:
+        args.originDict = load_shape_dict(args, origin = True, scale=args.meshScale)
+    args.shapeDict, args.infoDict = load_shape_dict(args, True,  scale=args.meshScale)
+    args.physics = True
 
     args.num_processes = config.num_processes if args.data_name is None else args.num_processes
     args.seed = config.seed
@@ -164,43 +161,25 @@ def main(args):
     args.LFSS = config.LFSS
 
     envs, spaces, obs_len = make_vec_envs(args, './logs/runinfo', True)
-    if args.shapePreType == 'GlobalIndices':
-        args.globalIndices = np.random.randint(100000, size=args.samplePointsNum)
+
+
     args.action_space = spaces[1].n
 
 
     args.level = 'location'
     if not args.hierachical:
     # Create the main Agent for IR pack
-        if config.originShape:
-            dqn = Agent(args)
-        else:
-            dqn = Agent(args)
-
-        # for buffer fixed indices
-        # if args.shapePreType == 'SurfacePointsRandom' or args.shapePreType == 'SurfacePointsEncode':
-        #     obs_len += args.samplePointsNum
-
-        if args.load_memory_path is not None: # load exsiting memeory dir
-            mem = []
-            for i in range(args.num_processes):
-                memory_path = os.path.join(args.memory, 'memory{}'.format(i))
-                mem.append(load_memory(memory_path, args.disable_bzip_memory))
-        else:
-            memNum = args.num_processes * 4 if args.dataAugmentation else args.num_processes
-            memory_capacity = int(args.memory_capacity / memNum)
-            mem = [ReplayMemory(args, memory_capacity, obs_len) for _ in range(memNum)]
+        dqn = Agent(args)
+        memNum = args.num_processes * 4 if args.dataAugmentation else args.num_processes
+        memory_capacity = int(args.memory_capacity / memNum)
+        mem = [ReplayMemory(args, memory_capacity, obs_len) for _ in range(memNum)]
         trainTool = trainer(writer, timeStr, dqn, mem)
 
     else:
         args.orderTrain = True
         args.locTrain = True
-        # orderModelPath = './checkpoints/preOrderModel.pt'
         orderModelPath = None
-        # orderModelPath = './logs/experiment/IR_concaveArea3_mass_hier_10-2022.08.02-22-23-07/orderCheckpoint29.pt'
-        # locModelPath = './checkpoints/preLocModel.pt'
         locModelPath = None
-        # locModelPath = './logs/experiment/IR_concaveArea3_mass_hier_10-2022.08.02-22-23-07/locCheckpoint29.pt'
 
         # todo finish the init order policy part
         orderArgs = copy.deepcopy(args)

@@ -133,7 +133,6 @@ def make_vec_envs(args,
         for i in range(num_processes)
     ]
 
-    # if len(envs) >= 1:
     """
         If you don't specify observation_space, we'll have to create a dummy
         environment to get it.

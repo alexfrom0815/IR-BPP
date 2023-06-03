@@ -380,7 +380,6 @@ def backup(timeStr, args):
 
     copyfile('main.py',   os.path.join(targetDir, 'main.py'))
     copyfile('model.py',   os.path.join(targetDir, 'model.py'))
-    copyfile('model_pointer.py',   os.path.join(targetDir, 'model_pointer.py'))
     copyfile('tools.py', os.path.join(targetDir, 'tools.py'))
     copyfile('trainer.py', os.path.join(targetDir, 'trainer.py'))
     copyfile('memory.py', os.path.join(targetDir, 'memory.py'))
