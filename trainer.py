@@ -141,14 +141,6 @@ class trainer(object):
         self.dqn = dqn
         self.mem = mem
 
-    def epsilon_substitute(self, action, heuristicExplore, eps):
-        num = len(heuristicExplore)
-        prob = np.random.random(num)
-        for i in range(num):
-            if prob[i] < eps:
-                action[i] = heuristicExplore[i]
-        return action
-
     def train_q_value(self, envs, args):
         priority_weight_increase = (1 - args.priority_weight) / (args.T_max - args.learn_start)
         sub_time_str = time.strftime('%Y.%m.%d-%H-%M-%S', time.localtime(time.time()))
@@ -162,8 +154,6 @@ class trainer(object):
             if not os.path.exists(memory_save_path):
                 os.makedirs(memory_save_path)
 
-        # if args.heuristicExplore:  exploration = LinearSchedule(1000000, 0.01)
-        if args.heuristicExplore:  exploration = LinearSchedule(100000, 0.1)
 
         episode_rewards = deque(maxlen=10)
         episode_area = deque(maxlen=10)
@@ -172,7 +162,6 @@ class trainer(object):
         episode_dist = deque(maxlen=10)
         episode_occu = deque(maxlen=10)
         episode_counter = deque(maxlen=10)
-        heuristicExplore = np.zeros(args.num_processes).astype(np.int)
         state = envs.reset()
         reward_clip = torch.ones((args.num_processes, 1)) * args.reward_clip
         R, loss = 0, 0
@@ -190,14 +179,12 @@ class trainer(object):
             mask = get_mask_from_state(state, args, args.previewNum)
             action = self.dqn.act(state, mask)  # Choose an action greedily (with noisy weights)
 
-            if args.heuristicExplore:
-                action = self.epsilon_substitute(action, heuristicExplore, exploration.value(T))
+
             next_state, reward, done, infos = envs.step(action.cpu().numpy())  # Step
 
             validSample = []
             for _ in range(len(infos)):
                 validSample.append(infos[_]['Valid'])
-                heuristicExplore[_] = infos[_]['MINZ']
                 if done[_] and infos[_]['Valid']:
                     if 'reward' in infos[_].keys():
                         episode_rewards.append(infos[_]['reward'])
@@ -309,7 +296,6 @@ class trainer_hierarchical(object):
         episode_dist = deque(maxlen=10)
         episode_occu = deque(maxlen=10)
         episode_counter = deque(maxlen=10)
-        heuristicExplore = np.zeros(args.num_processes).astype(np.int)
         orderState = envs.reset()
         reward_clip = torch.ones((args.num_processes, 1)) * args.reward_clip
         R, orderLoss, locLoss = 0, 0, 0
@@ -354,7 +340,6 @@ class trainer_hierarchical(object):
             validSample = []
             for _ in range(len(infos)):
                 validSample.append(infos[_]['Valid'])
-                heuristicExplore[_] = infos[_]['MINZ']
                 if done[_] and infos[_]['Valid']:
                     if 'reward' in infos[_].keys():
                         episode_rewards.append(infos[_]['reward'])

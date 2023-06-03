@@ -12,7 +12,6 @@ import pickle
 import torch
 from matplotlib import pyplot as plt
 import transforms3d
-from pointnet import ResnetPointnet
 import pybullet as p
 import math
 import gym
@@ -399,20 +398,8 @@ def init(module, weight_init, bias_init, gain=1):
 
 def registration_envs():
     register(
-        id='Ir-v0',                                  # Format should be xxx-v0, xxx-v1
-        entry_point='environment.ir0:PackingGame',  # Expalined in envs/__init__.py
-    )
-    register(
-        id='Boxpack-v0',                                  # Format should be xxx-v0, xxx-v1
-        entry_point='environment.boxpack0:PackingGame',  # Expalined in envs/__init__.py
-    )
-    register(
         id='Physics-v0',                                  # Format should be xxx-v0, xxx-v1
         entry_point='environment.physics0:PackingGame',   # Expalined in envs/__init__.py
-    )
-    register(
-        id='Physics-v1',                                  # This repo change the FLB action to CenterAction
-        entry_point='environment.physics1:PackingGame',
     )
 
 def save_memory(memory, memory_path, disable_bzip):
@@ -470,29 +457,7 @@ def shapeProcessing(shapeDict, args):
                     shapes = np.concatenate((triangles, face_normals), axis=2)
                     shapeArray[shapeIdx][rotIdx] = shapes
         else: # Present the current shape with pointNet
-            if args.shapePreType == 'PreTrain':
-                assert False # 目前初始化的方法没有确定
-                shapeDict = torch.load(args.dicPath)
-                pointCloudPath = args.pointCloud
-                encoderName = args.encoderPath.split('/')[-1]
-                if os.path.exists(os.path.join(args.pointCloud, encoderName)):
-                    shapeArray = torch.load(os.path.join(args.pointCloud, encoderName))
-                else:
-                    pointsLen = 512
-                    rotationNum = 1
-                    shapeArray = np.zeros((len(shapeDict), rotationNum, pointsLen))
-                    model = ResnetPointnet().to(args.device)
-                    model.load_state_dict(torch.load(args.encoderPath))
-                    for shapeIdx in shapeDict.keys():
-                        for rotIdx in range(rotationNum):
-                            # data = shapeDict[0].replace('.obj', '.npz')
-                            data = shapeDict[0][0:-4] + '.npz'
-                            data = np.load(os.path.join(pointCloudPath, data))['points']
-                            data = torch.tensor(data).to(args.device).unsqueeze(0).to(torch.float32)
-                            feature = model(data).cpu().detach().numpy()
-                            shapeArray[shapeIdx][rotIdx] = feature
-                    torch.save(shapeArray, os.path.join(args.pointCloud, encoderName))
-            elif args.shapePreType == 'MeshVertices':
+            if args.shapePreType == 'MeshVertices':
                 maxVerticeNum = 0
                 for shapeIdx in shapeDict.keys():
                     maxVerticeNum = max(len(shapeDict[shapeIdx][0].vertices), maxVerticeNum)
@@ -572,35 +537,6 @@ def load_shape_dict(args, returnInfo = False, origin = False, scale = 1):
     else:
         return backDict
 
-# def pose_distance(pose1, pose2, a = None):
-#     # Di Gregorio R (2008) A novel point of view to define the distance
-#     # between two rigid-body poses. In: Advances in Robot Kinematics:
-#     # Analysis and Design, Springer, p 361–369
-#     # http://www.boris-belousov.net/2016/12/01/quat-dist/
-#     pose1 = np.array(pose1)
-#     pose2 = np.array(pose2)
-#
-#     pos1, xyz1 = pose1[:3], pose1[3:]
-#     pos2, xyz2 = pose2[:3], pose2[3:]
-#
-#     if a is None:
-#         a = 0.28059 / 2.0
-#     b = 1
-#
-#     m1 = transforms3d.euler.euler2mat(*xyz1, axes='sxyz')
-#     m2 = transforms3d.euler.euler2mat(*xyz2, axes='sxyz')
-#
-#     diff_m = m1.transpose() * m2
-#
-#     r_diff = np.arccos( (diff_m.trace() - 1) / 2 )
-#     t_diff = np.linalg.norm(pos1 - pos2)
-#
-#     r_diff = a * r_diff
-#     t_diff = b * t_diff
-#
-#     diff = r_diff + t_diff
-#
-#     return diff
 
 def pose_distance(pose1, pose2, a = None):
     # Di Gregorio R (2008) A novel point of view to define the distance
