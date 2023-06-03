@@ -6,7 +6,6 @@ from torch.nn import functional as F
 import numpy as np
 from tools import init
 from graph_encoder import GraphAttentionEncoder
-from pointnet import ResnetPointnet
 from dataProcess import *
 
 # Factorised NoisyLinear layer with bias
@@ -145,8 +144,6 @@ class DQNP(nn.Module):
     self.fc_h_v = NoisyLinear(self.embedding_dim, args.hidden_size, std_init=args.noisy_std)
     self.fc_h_a = NoisyLinear(self.embedding_dim, args.hidden_size, std_init=args.noisy_std)
     self.fc_z_v = NoisyLinear(args.hidden_size, self.atoms, std_init=args.noisy_std)
-    # This one should be changed.
-    # self.fc_z_a = NoisyLinearP(args.hidden_size, action_space * self.atoms, std_init=args.noisy_std)
     self.fc_z_a = NoisyLinear(args.hidden_size, self.atoms, std_init=args.noisy_std)
 
   def updateShapeArray(self):
@@ -181,7 +178,7 @@ class DQNP(nn.Module):
       next_item_ID = next_item[:, 0].long()
       if self.args.shapePreType == 'SurfacePointsRandom' or self.args.shapePreType == 'SurfacePointsEncode':
           nextShape = self.shapeArray[next_item_ID.cpu()]
-          indices = np.random.randint(self.shapeArray.shape[1], size=self.args.samplePointsNum)  # 这里是不是最好是不重复的元素啊
+          indices = np.random.randint(self.shapeArray.shape[1], size=self.args.samplePointsNum)
           # indices = self.args.globalIndices
           nextShape = nextShape[:, indices].to(self.args.device)
       else:

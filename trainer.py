@@ -281,46 +281,6 @@ class trainer(object):
             if len(episode_counter) != 0:
                 self.writer.add_scalar('Metric/Length', np.mean(episode_counter), T)
 
-    def gatherHeuristicData(self, envs, args):
-        del self.dqn
-        args.save_memory_path = 'memory'
-        model_save_path = os.path.join(args.model_save_path, self.timeStr)
-
-        assert args.save_memory_path is not None
-        memory_save_path = os.path.join(model_save_path, args.save_memory_path)
-        if not os.path.exists(memory_save_path):
-            os.makedirs(memory_save_path)
-
-        heuristicExplore = np.zeros(args.num_processes).astype(np.int)
-        state = envs.reset()
-        reward_clip = torch.ones((args.num_processes, 1)) * args.reward_clip
-
-        # Training loop
-        for T in trange(1, args.T_max + 1):
-
-            next_state, reward, done, infos = envs.step(heuristicExplore)  # Step
-            validSample = []
-            for _ in range(len(infos)):
-                validSample.append(infos[_]['Valid'])
-                heuristicExplore[_] = infos[_]['MINZ']
-
-            if args.reward_clip > 0:
-                reward = torch.maximum(torch.minimum(reward, reward_clip), -reward_clip)  # Clip rewards
-
-            for i in range(len(state)):
-                if validSample[i]:
-                    self.mem[i].append(state[i], heuristicExplore[i], reward[i], done[i])  # Append transition to memory
-
-
-            if args.save_memory_path is not None and (T % args.save_interval == 0):
-                for i in range(len(self.mem)):
-                    savePath = os.path.join(memory_save_path, 'memory{}'.format(i))
-                    save_memory(self.mem[i], savePath, args.disable_bzip_memory)
-                if T >= self.mem[0].capacity:
-                    exit()
-
-            state = next_state
-
 class trainer_hierarchical(object):
     def __init__(self, writer, timeStr, DQNs, MEMs):
         self.writer = writer
@@ -467,20 +427,6 @@ class trainer_hierarchical(object):
                             self.writer.add_scalar("Training/Value loss",  locLoss.mean().item(), T)
                         if args.locTrain:
                             self.writer.add_scalar("Training/Order value loss",  orderLoss.mean().item(), T)
-
-                    # if args.save_memory_path is not None and (T % args.save_interval == 0):
-                    #     for i in range(len(self.orderMem)):
-                    #         savePath = os.path.join(memory_save_path, 'ordermemory{}'.format(i))
-                    #         save_memory(self.orderMem[i], savePath, args.disable_bzip_memory)
-                    #         savePath = os.path.join(memory_save_path, 'locmemory{}'.format(i))
-                    #         save_memory(self.locMem[i], savePath, args.disable_bzip_memory)
-
-            # if T % args.evaluation_interval == 0:
-            #     if args.distributed: lock.value = True
-            #     avg_reward, avg_length = test(args,  self.dqn, timeStr = self.timeStr, times=str(int(T//args.evaluation_interval)))  # Test
-            #     if args.distributed: lock.value = False
-            #     self.writer.add_scalar('Metric/Eval Reward', avg_reward, T)
-            #     self.writer.add_scalar('Metric/Eval Length', avg_length, T)
 
             orderState = next_order_state
 
