@@ -186,7 +186,7 @@ class PackingGame(gym.Env):
         self.LFSS = LFSS
         self.randomConvex = randomConvex
         self.heightResolution = heightResolution
-        self.candidates_num = []
+
     def seed(self, seed=None):
         self.seed = seed
         if seed is not None:
@@ -318,7 +318,6 @@ class PackingGame(gym.Env):
                                                                  self.convexAction,
                                                                  self.heightResolution,
                                                            draw=[draw, len(self.packed)])
-                    self.candidates_num.append(len(self.candidates) if self.candidates is not None else 0)
                     if save:
                         self.save = True
                     if self.candidates is not None:
@@ -494,7 +493,6 @@ class PackingGame(gym.Env):
                     'Valid': True,
                     'MINZ': np.argmin(self.space.posZValid)}
             observation = self.cur_observation()
-            print('candidate number min:{}, max:{}, mean:{}'.format(np.min(self.candidates_num), np.max(self.candidates_num), np.mean(self.candidates_num)))
             return observation, reward, True, info
 
         if valid:

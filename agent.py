@@ -8,7 +8,7 @@ import torch
 from torch import optim
 from torch.nn.utils import clip_grad_norm_
 from tools import shapeProcessing
-from model import DQN, DQNP
+from model import DQNP
 import math
 
 class Agent():
@@ -26,10 +26,7 @@ class Agent():
 
     # shapeArray = shapeProcessing(shapeDict, args)
     shapeArray = torch.tensor(args.shapeArray).type(torch.float).share_memory_()
-    if args.previewNum > 1:
-      network = DQNP
-    else:
-      network = DQN
+    network = DQNP
     self.online_net = network(args, self.action_space, shapeArray).to(device=args.device).share_memory()
 
     if args.model:  # Load pretrained model if provided

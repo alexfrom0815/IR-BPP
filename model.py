@@ -49,202 +49,6 @@ class NoisyLinear(nn.Module):
       return F.linear(input, self.weight_mu, self.bias_mu)
 
 
-class DQN(nn.Module):
-  def __init__(self, args, action_space, shapeArray):
-    super(DQN, self).__init__()
-
-    self.atoms = args.atoms # c51
-    self.action_space = action_space
-    if shapeArray is not None:
-        self.shapeArray = shapeArray
-    self.packed_holder = args.packed_holder
-    self.boundingBoxVec = args.boundingBoxVec
-    self.heightMap = args.heightMap
-    self.rotNum = args.DownRotNum * args.ZRotNum if args.enable_rotation else 1
-    self.heightMapSize = int(action_space / self.rotNum)
-    self.MapLength = int(args.bin_dimension[0] / args.resolutionH)
-    self.ActLength = int(args.bin_dimension[0] / args.resolutionA)
-    self.physics = False if args.envName != 'Physics-v0' else True
-    self.elementWise = args.elementWise
-
-    self.args = args
-    zDim = 256
-    self.zDim = zDim
-    init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0), nn.init.calculate_gain('leaky_relu'))
-    self.output_size = zDim * 2
-    self.basicFeatureSize = int(zDim / 2)
-
-    self.shapeEncoder = nn.Sequential()
-    self.shapeEncoder.add_module('linear1', init_(nn.Linear(3, 128)))
-    self.shapeEncoder.add_module('relu2', nn.LeakyReLU())
-    self.shapeEncoder.add_module('linear3', init_(nn.Linear(128, int(zDim/2))))
-    self.shapeEncoder.add_module('relu3', nn.LeakyReLU())
-
-    transLen = 7 if self.physics else 16
-    # Encode the mesh translation.
-    if self.elementWise:
-        self.transEncoder = nn.Sequential()
-        self.transEncoder.add_module('linear1', init_(nn.Linear(transLen, 128)))
-        self.transEncoder.add_module('relu2', nn.LeakyReLU())
-        self.transEncoder.add_module('linear3', init_(nn.Linear(128, int(zDim / 2))))
-        self.transEncoder.add_module('relu3', nn.LeakyReLU())
-
-    if self.heightMap:
-
-        if args.resolutionH == 0.01:
-            self.heightEncoder = nn.Sequential()
-            if np.isclose(args.bin_dimension[0], 0.4):
-                self.heightEncoder.add_module('conv1', init_(nn.Conv2d(1, 16, 4, stride=2, padding=1))) # 40 -> 20
-                self.heightEncoder.add_module('relu1', nn.LeakyReLU())
-                self.heightEncoder.add_module('conv2', init_(nn.Conv2d(16, 32, 6, stride=2))) # 20 -> 8
-            else:
-                self.heightEncoder.add_module('conv1', init_(nn.Conv2d(1, 16, 4, stride=2, padding=1))) # 32 -> 16
-                self.heightEncoder.add_module('relu1', nn.LeakyReLU())
-                self.heightEncoder.add_module('conv2', init_(nn.Conv2d(16, 32, 4, stride=2, padding=1))) # 16 -> 8
-            self.heightEncoder.add_module('relu2', nn.LeakyReLU())
-            if self.elementWise:
-                self.heightEncoder.add_module('conv3', init_(nn.Conv2d(32, 2, 3, stride=1, padding=1))) # 16 -> 8
-            else:
-                self.heightEncoder.add_module('conv3', init_(nn.Conv2d(32, 4, 3, stride=1, padding=1))) # 16 -> 8
-            self.heightEncoder.add_module('relu3', nn.LeakyReLU())
-
-        elif args.resolutionH == 0.005:
-            self.heightEncoder = nn.Sequential(
-                init_(nn.Conv2d(1, 16, 4, stride=2, padding=2)),  # 64 -> 32
-                nn.LeakyReLU(),
-                init_(nn.Conv2d(16, 32, 4, stride=2, padding=1)), # 32 -> 16
-                nn.LeakyReLU(),
-                init_(nn.Conv2d(32, 1, 3, stride=1, padding=1)),  # 16 -> 16
-                nn.LeakyReLU())
-        elif args.resolutionH == 0.002:
-            self.heightEncoder = nn.Sequential(
-                init_(nn.Conv2d(1, 16, 9, stride=5, padding=2)),  # 160 -> 32
-                nn.LeakyReLU(),
-                init_(nn.Conv2d(16, 32, 4, stride=2, padding=1)),  # 32 -> 16
-                nn.LeakyReLU(),
-                init_(nn.Conv2d(32, 1, 3, stride=1, padding=1)),  # 16 -> 16
-                nn.LeakyReLU())
-
-        if self.elementWise:
-            self.shorter = nn.Sequential()
-            self.shorter.add_module('linear1', init_(nn.Linear(zDim, int(zDim / 2))))
-            self.shorter.add_module('relu1', nn.LeakyReLU())
-
-
-
-    # # Graph attention model
-    if self.elementWise:
-        n_heads = 1
-        n_layers = 1
-        graph_size = args.packed_holder
-        # Use graph attention network to encode the packed items.
-        self.gatherShape = GraphAttentionEncoder(
-          n_heads=n_heads,
-          embed_dim=zDim,
-          n_layers=n_layers,
-          graph_size=graph_size,
-          feed_forward_hidden=256)
-
-    if args.resolutionA == 0.04:
-        self.maskEncoder = nn.Sequential(
-            init_(nn.Conv2d(self.rotNum,  32,  3, stride=1, padding=1)), # 8 -> 8
-            nn.LeakyReLU(),
-            init_(nn.Conv2d(32, 32, 3, stride=1, padding=1)),  # 8 -> 8
-            nn.LeakyReLU(),
-            init_(nn.Conv2d(32, 2,  3, stride=1, padding=1)),
-            nn.LeakyReLU())
-    elif args.resolutionA == 0.02:
-        self.maskEncoder = nn.Sequential(
-            init_(nn.Conv2d(self.rotNum,  32,  3, stride=1, padding=1)), # 16 -> 16
-            nn.LeakyReLU(),
-            init_(nn.Conv2d(32, 32, 4, stride=2, padding=1)),  # 16 -> 8
-            nn.LeakyReLU(),
-            init_(nn.Conv2d(32, 2,  3, stride=1, padding=1)),
-            nn.LeakyReLU())
-    elif  args.resolutionA == 0.01:
-        self.maskEncoder = nn.Sequential(
-            init_(nn.Conv2d(self.rotNum,  32,  4, stride=2, padding=1)), # 32 -> 16
-            nn.LeakyReLU(),
-            init_(nn.Conv2d(32, 32, 4, stride=2, padding=1)),  # 16 -> 8
-            nn.LeakyReLU(),
-            init_(nn.Conv2d(32, 2,  3, stride=1, padding=1)),
-            nn.LeakyReLU())
-
-    self.fc_h_v = NoisyLinear(self.output_size, args.hidden_size, std_init=args.noisy_std)
-    self.fc_h_a = NoisyLinear(self.output_size, args.hidden_size, std_init=args.noisy_std)
-    self.fc_z_v = NoisyLinear(args.hidden_size, self.atoms, std_init=args.noisy_std)
-    self.fc_z_a = NoisyLinear(args.hidden_size, action_space * self.atoms, std_init=args.noisy_std)
-
-
-
-
-  def decode_physic_only_with_heightmap(self, observation):
-      batchSize = observation.shape[0]
-      observation = observation.reshape((batchSize, -1))
-      next_item = observation[:, 0 : 9].reshape((batchSize, 9))
-      masks = observation[:, 9: 9 + self.action_space]
-      heightMap = observation[:, 9 + self.action_space : ] if self.heightMap else None
-      return next_item, masks,  heightMap
-
-  def embed_physic_only_with_heightmap(self, x):
-      batchSize = x.shape[0]
-
-      next_item, masks, heightMap = self.decode_physic_only_with_heightmap(x)
-      heightMap = heightMap.reshape((batchSize, 1, self.MapLength, self.MapLength))
-      masks = masks.reshape((batchSize, self.rotNum, self.ActLength, self.ActLength))
-      next_item_ID = next_item[:, 0].long()
-      if self.args.shapePreType == 'SurfacePointsRandom':
-          nextShape = self.shapeArray[next_item_ID]
-          indices = np.random.randint(self.shapeArray.shape[1], size=self.args.samplePointsNum)
-          nextShape = nextShape[:, indices].to(self.args.device)
-      else:
-          nextShape = self.shapeArray[next_item_ID, 0].to(self.args.device)
-
-      map_feature = self.heightEncoder(heightMap).reshape((batchSize, -1))
-
-      assert not self.preEncoder
-      shape_feature = self.shapeEncoder(nextShape)
-      shape_feature = torch.max(shape_feature, dim=1)[0]
-      mask_feature = self.maskEncoder(masks).reshape((batchSize, -1))
-      x = torch.cat([map_feature, shape_feature, mask_feature], dim=1)
-      return x
-
-
-  def decode_physics_mesh(self, observation):
-      batchSize = observation.shape[0]
-      observation = observation.reshape((batchSize, -1))
-      packed_items = observation[:, 0:self.packed_holder * 9].reshape((batchSize, -1, 9))
-      next_item = observation[:, self.packed_holder * 9:(self.packed_holder + 1) * 9].reshape((batchSize, 9))
-      masks = observation[:, (self.packed_holder + 1) * 9: (self.packed_holder + 1) * 9 + self.action_space]
-      heightMap = observation[:, (self.packed_holder + 1) * 9 + self.action_space : ] if self.heightMap else None
-      return packed_items, next_item, masks,  heightMap
-
-
-  def forward(self, x, log=False, getCL = False):
-      loss_cl = None
-      x = self.embed_physic_only_with_heightmap(x)
-
-      x = x.view(-1, self.output_size)
-
-      v = self.fc_z_v(F.relu(self.fc_h_v(x)))  # Value stream
-      a = self.fc_z_a(F.relu(self.fc_h_a(x)))  # Advantage stream
-      v, a = v.view(-1, 1, self.atoms), a.view(-1, self.action_space, self.atoms)
-      q = v + a - a.mean(1, keepdim=True)  # Combine streams
-      if log:  # Use log softmax for numerical stability
-        q = F.log_softmax(q, dim=2)  # Log probabilities with action over second dimension
-      else:
-        q = F.softmax(q, dim=2)  # Probabilities with action over second dimension
-      # return q
-      if getCL:
-          return q, loss_cl
-      else:
-          return q
-
-  def reset_noise(self):
-    for name, module in self.named_children():
-      if 'fc' in name:
-        module.reset_noise()
-
 class DQNP(nn.Module):
   def __init__(self, args, action_space, shapeArray):
     super(DQNP, self).__init__()
@@ -272,7 +76,6 @@ class DQNP(nn.Module):
     self.elementWise = args.elementWise
 
     self.preEncoder = args.shapePreType == 'PreTrain'
-    self.SurfacePointsPre = args.shapePreType == 'SurfacePoints'
 
 
     zDim = 256
@@ -311,11 +114,25 @@ class DQNP(nn.Module):
             init_(nn.Conv2d(32, 1, 3, stride=1, padding=1)),  # 16 -> 16
             nn.LeakyReLU())
 
-    self.shapeEncoder = nn.Sequential()
-    self.shapeEncoder.add_module('linear1', init_(nn.Linear(3, 128)))
-    self.shapeEncoder.add_module('relu1', nn.LeakyReLU())
-    self.shapeEncoder.add_module('linear2', init_(nn.Linear(128, 128)))
-    self.shapeEncoder.add_module('relu2', nn.LeakyReLU())
+    if self.preEncoder:
+        self.shapeEncoder = nn.Sequential()
+        self.shapeEncoder.add_module('linear1', init_(nn.Linear(512, 128)))
+        self.shapeEncoder.add_module('relu1', nn.LeakyReLU())
+    elif self.args.shapePreType == 'SurfacePointsEncode':
+        self.shapeEncoder = ResnetPointnet(c_dim=128)
+        if args.encoderPath is not None:
+            print('Load encoder from', args.encoderPath)
+            state_dict = torch.load(args.encoderPath, map_location='cpu')
+            self.shapeEncoder.load_state_dict(state_dict)
+        for param in self.shapeEncoder.parameters():
+            param.requires_grad = False
+        self.shapeEncoder.eval()
+    else:
+        self.shapeEncoder = nn.Sequential()
+        self.shapeEncoder.add_module('linear1', init_(nn.Linear(3, 128)))
+        self.shapeEncoder.add_module('relu1', nn.LeakyReLU())
+        self.shapeEncoder.add_module('linear2', init_(nn.Linear(128, 128)))
+        self.shapeEncoder.add_module('relu2', nn.LeakyReLU())
 
     self.init_ems_embed = nn.Sequential(
         init_(nn.Linear(4, 32)),
@@ -325,6 +142,7 @@ class DQNP(nn.Module):
     self.embedding_dim = 128
     self.oneMore = nn.Sequential(
         init_(nn.Linear(512, 256)),
+        # init_(nn.Linear(640, 256)),
         nn.LeakyReLU(),
         init_(nn.Linear(256, self.embedding_dim)))
 
@@ -345,6 +163,8 @@ class DQNP(nn.Module):
     self.fc_h_v = NoisyLinear(self.embedding_dim, args.hidden_size, std_init=args.noisy_std)
     self.fc_h_a = NoisyLinear(self.embedding_dim, args.hidden_size, std_init=args.noisy_std)
     self.fc_z_v = NoisyLinear(args.hidden_size, self.atoms, std_init=args.noisy_std)
+    # This one should be changed.
+    # self.fc_z_a = NoisyLinearP(args.hidden_size, action_space * self.atoms, std_init=args.noisy_std)
     self.fc_z_a = NoisyLinear(args.hidden_size, self.atoms, std_init=args.noisy_std)
 
   def updateShapeArray(self):
@@ -363,6 +183,138 @@ class DQNP(nn.Module):
       masks = observation[:, 9: 9 + self.action_space]
       heightMap = observation[:, 9 + self.action_space : ] if self.heightMap else None
       return next_item, masks,  heightMap
+
+  def embed_physic_only_with_heightmap(self, x):
+      batchSize = x.shape[0]
+      next_item, actionMask, heightMap, candidates = observation_decode_irregular(x, self.args)
+      graph_size = candidates.size(1)
+
+      valid_mask = actionMask
+      invalid_ones = 1 - valid_mask  # mask 为1的地方是被删掉的地方
+
+      candidates_size = candidates.size(1)
+      heightMap = heightMap.reshape((batchSize, 1, self.MapLength, self.MapLength))
+      map_feature = self.heightEncoder(heightMap).reshape((batchSize, -1))
+
+      next_item_ID = next_item[:, 0].long()
+      if self.args.shapePreType == 'SurfacePointsRandom' or self.args.shapePreType == 'SurfacePointsEncode':
+          nextShape = self.shapeArray[next_item_ID.cpu()]
+          indices = np.random.randint(self.shapeArray.shape[1], size=self.args.samplePointsNum)  # 这里是不是最好是不重复的元素啊
+          # indices = self.args.globalIndices
+          nextShape = nextShape[:, indices].to(self.args.device)
+      else:
+          nextShape = self.shapeArray[next_item_ID, 0].to(self.args.device)
+
+      assert not self.preEncoder
+      if  self.args.shapePreType == 'SurfacePointsEncode':
+          self.shapeEncoder.eval()
+          shape_feature = self.shapeEncoder(nextShape)
+          shape_feature = F.normalize(shape_feature, dim=1)
+      else:
+          shape_feature = self.shapeEncoder(nextShape)
+          shape_feature = torch.max(shape_feature, dim=1)[0]
+
+      ems_inputs = candidates.contiguous().view(batchSize, candidates_size, -1)
+      ems_embedded_inputs = self.init_ems_embed(ems_inputs)
+      init_embedding = torch.cat((shape_feature.repeat(1, candidates_size).reshape(batchSize, candidates_size, -1),
+                                  map_feature.repeat((1, candidates_size)).reshape(batchSize, candidates_size, -1),
+                                  ems_embedded_inputs), dim=2).view(batchSize * candidates_size, -1)
+      init_embedding = self.oneMore(init_embedding).view(batchSize, candidates_size, self.embedding_dim)
+
+      embeddings = init_embedding
+      embedding_shape = embeddings.shape
+
+      transEmbedding = embeddings.view((batchSize, graph_size, -1))
+      invalid_ones = invalid_ones.view(embedding_shape[0], embedding_shape[1], 1).expand(embedding_shape).bool()
+      transEmbedding[invalid_ones] = 0
+      graph_embed = transEmbedding.view(embedding_shape).mean(1)  # 其实这里的取均值一定程度上相当于相加了
+
+      return embeddings, graph_embed
+
+  def embed_physic_only_with_heightmap_advantage(self, x):
+      batchSize = x.shape[0]
+      next_item, actionMask, heightMap, candidates = observation_decode_irregular(x, self.args)
+      graph_size = candidates.size(1)
+
+      valid_mask = actionMask
+      invalid_ones = 1 - valid_mask  # mask 为1的地方是被删掉的地方
+
+      candidates_size = candidates.size(1)
+      heightMap = heightMap.reshape((batchSize, 1, self.MapLength, self.MapLength))
+      map_feature = self.heightEncoder(heightMap).reshape((batchSize, -1))
+
+      next_item_ID = next_item[:, 0].long()
+      if self.args.shapePreType == 'SurfacePointsRandom' or self.args.shapePreType == 'SurfacePointsEncode':
+          nextShape = self.shapeArray[next_item_ID]
+          indices = np.random.randint(self.shapeArray.shape[1], size=self.args.samplePointsNum)  # 这里是不是最好是不重复的元素啊
+          # indices = self.args.globalIndices
+          nextShape = nextShape[:, indices].to(self.args.device)
+      else:
+          nextShape = self.shapeArray[next_item_ID, 0].to(self.args.device)
+
+      assert not self.preEncoder
+      if  self.args.shapePreType == 'SurfacePointsEncode':
+          self.shapeEncoder.eval()
+          shape_feature = self.shapeEncoder(nextShape)
+          shape_feature = F.normalize(shape_feature, dim=1)
+      else:
+          shape_feature = self.shapeEncoder(nextShape)
+          shape_feature = torch.max(shape_feature, dim=1)[0]
+
+      ems_inputs = candidates.contiguous().view(batchSize, candidates_size, -1)
+      ems_embedded_inputs = self.init_ems_embed(ems_inputs)
+      init_embedding = torch.cat((shape_feature.repeat(1, candidates_size).reshape(batchSize, candidates_size, -1),
+                                  map_feature.repeat((1, candidates_size)).reshape(batchSize, candidates_size, -1),
+                                  ems_embedded_inputs), dim=2).view(batchSize * candidates_size, -1)
+      init_embedding = self.oneMore(init_embedding).view(batchSize, candidates_size, self.embedding_dim)
+
+      # embeddings = init_embedding
+
+      embeddings = torch.cat((shape_feature, map_feature), dim=1).view(batchSize, -1)
+      graph_embed = self.noAction(embeddings)
+
+      # init_embedding_shape = init_embedding.shape
+      # transEmbedding = init_embedding.view((batchSize, graph_size, -1))
+      # invalid_ones = invalid_ones.view(init_embedding_shape[0], init_embedding_shape[1], 1).expand(init_embedding_shape).bool()
+      # transEmbedding[invalid_ones] = 0
+      # graph_embed = transEmbedding.view(init_embedding_shape).mean(1)  # 其实这里的取均值一定程度上相当于相加了
+
+      return init_embedding, graph_embed
+
+  def embed_physic_k_shape(self, x):
+      batchSize = x.shape[0]
+
+      next_k_shapes_ID, heightMap = observation_decode_irregular_k_shape(x, self.args)
+      graph_size = next_k_shapes_ID.size(1)
+
+      candidates_size = graph_size
+      heightMap = heightMap.reshape((batchSize, 1, self.MapLength, self.MapLength))
+      map_feature = self.heightEncoder(heightMap).reshape((batchSize, -1))
+
+      shapeIdx = next_k_shapes_ID.detach().long().reshape(-1)
+
+      if self.args.shapePreType == 'SurfacePointsRandom' or self.args.shapePreType == 'SurfacePointsEncode':
+          next_k_shapes = self.shapeArray[shapeIdx]
+          indices = np.random.randint(self.shapeArray.shape[1], size=self.args.samplePointsNum)  # 这里是不是最好是不重复的元素啊
+          next_k_shapes = next_k_shapes[:, indices].to(self.args.device)
+      else:
+          rotIdx = torch.zeros_like(shapeIdx).long()
+          next_k_shapes = self.shapeArray[shapeIdx, rotIdx].float().to(self.args.device)
+
+      shape_feature = self.shapeEncoder(next_k_shapes)
+      if not self.preEncoder:
+        shape_feature = torch.max(shape_feature, dim=1)[0]
+
+      init_embedding = torch.cat((shape_feature.reshape(batchSize, candidates_size, -1),
+                                  map_feature.repeat((1, candidates_size)).reshape(batchSize, candidates_size, -1)), dim=2).view(batchSize * candidates_size, -1)
+      init_embedding = self.noAction(init_embedding).view(batchSize, candidates_size, self.embedding_dim)
+      embeddings = init_embedding
+      embedding_shape = embeddings.shape
+
+      transEmbedding = embeddings.view((batchSize, graph_size, -1))
+      graph_embed = transEmbedding.view(embedding_shape).mean(1)  # 其实这里的取均值一定程度上相当于相加了
+
+      return embeddings, graph_embed
 
   def embed_physic_k_shape_with_gat(self, x):
       batchSize = x.shape[0]
@@ -383,7 +335,8 @@ class DQNP(nn.Module):
           rotIdx = torch.zeros_like(shapeIdx).long()
           next_k_shapes = self.shapeArray[shapeIdx, rotIdx].float().to(self.args.device)
       shape_feature = self.shapeEncoder(next_k_shapes)
-      shape_feature = torch.max(shape_feature, dim=1)[0]
+      if not self.preEncoder:
+        shape_feature = torch.max(shape_feature, dim=1)[0]
 
       init_embedding = torch.cat((shape_feature.reshape(batchSize, candidates_size, -1),
                                   map_feature.repeat((1, candidates_size)).reshape(batchSize, candidates_size, -1)), dim=2).view(batchSize * candidates_size, -1)
@@ -396,11 +349,63 @@ class DQNP(nn.Module):
       graph_embed = transEmbedding.view(embedding_shape).mean(1)
       return embeddings, graph_embed
 
+  def embed_physic_with_heightmap_and_k_shape(self, x):
+      batchSize = x.shape[0]
+
+      next_item, actionMask, heightMap, candidates, next_k_shapes_ID = observation_decode_irregular_with_k_shape(x, self.args)
+      graph_size = candidates.size(1)
+
+      valid_mask = actionMask
+      invalid_ones = 1 - valid_mask  # mask 为1的地方是被删掉的地方
+
+      candidates_size = candidates.size(1)
+      heightMap = heightMap.reshape((batchSize, 1, self.MapLength, self.MapLength))
+      map_feature = self.heightEncoder(heightMap).reshape((batchSize, -1))
+
+      next_item_ID = next_item[:, 0].long()
+      nextShape = self.shapeArray[next_item_ID, 0].to(self.args.device)
+      selected_shape_feature = self.shapeEncoder(nextShape)
+      if not self.preEncoder:
+        selected_shape_feature = torch.max(selected_shape_feature, dim=1)[0]
+
+      shapeNum = next_k_shapes_ID.shape[-1]
+      allShapeIdx = next_k_shapes_ID.detach().long().reshape(-1)
+      allRotIdx = torch.zeros_like(allShapeIdx).long()
+      next_k_shapes = self.shapeArray[allShapeIdx, allRotIdx].float().to(self.args.device)
+      all_shape_feature = self.shapeEncoder(next_k_shapes)
+      if not self.preEncoder:
+        all_shape_feature = torch.max(all_shape_feature, dim=1)[0]
+      all_shape_feature = all_shape_feature.reshape(batchSize, shapeNum, -1)
+      all_shape_feature = torch.max(all_shape_feature, dim=1)[0]
+
+      ems_inputs = candidates.contiguous().view(batchSize, candidates_size, -1)
+      ems_embedded_inputs = self.init_ems_embed(ems_inputs)
+      init_embedding = torch.cat((selected_shape_feature.repeat(1, candidates_size).reshape(batchSize, candidates_size, -1),
+                                  all_shape_feature.repeat(1, candidates_size).reshape(batchSize, candidates_size,-1),
+                                  map_feature.repeat((1, candidates_size)).reshape(batchSize, candidates_size, -1),
+                                  ems_embedded_inputs), dim=2).view(batchSize * candidates_size, -1)
+      init_embedding = self.oneMore(init_embedding).view(batchSize, candidates_size, self.embedding_dim)
+      # embeddings, _ = self.embedder(init_embedding, mask=invalid_ones, limited=True)  # 前向没啥问题了，然后开始算概率
+      embeddings = init_embedding
+      embedding_shape = embeddings.shape
+
+      transEmbedding = embeddings.view((batchSize, graph_size, -1))
+      invalid_ones = invalid_ones.view(embedding_shape[0], embedding_shape[1], 1).expand(embedding_shape).bool()
+      transEmbedding[invalid_ones] = 0
+      graph_embed = transEmbedding.view(embedding_shape).mean(1)  # 其实这里的取均值一定程度上相当于相加了
+
+
+      return embeddings, graph_embed
+
+
   def forward(self, x, log=False,  getCL = False):
 
       loss_cl = None
-      assert self.args.previewNum > 1
-      x, xGlobal = self.embed_physic_k_shape_with_gat(x)
+      if self.args.previewNum > 1:
+        x, xGlobal = self.embed_physic_k_shape_with_gat(x)
+      else:
+        x, xGlobal = self.embed_physic_only_with_heightmap(x)
+
       v = self.fc_z_v(F.relu(self.fc_h_v(xGlobal)))  # Value stream
       a = self.fc_z_a(F.relu(self.fc_h_a(x)))  # Advantage stream
       v, a = v.view(-1, 1, self.atoms), a.view(-1, self.action_space, self.atoms)
@@ -409,6 +414,7 @@ class DQNP(nn.Module):
         q = F.log_softmax(q, dim=2)  # Log probabilities with action over second dimension
       else:
         q = F.softmax(q, dim=2)  # Probabilities with action over second dimension
+
       self.forwardCounter += 1
       if self.forwardCounter == 1000:
           self.updateShapeArray()

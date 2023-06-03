@@ -121,20 +121,6 @@ class ReplayMemory():
     self.transitions.append(Transition(self.t, state, action, reward, not terminal), self.transitions.max)  # Store new transition with maximum priority
     self.t = 0 if terminal else self.t + 1  # Start new episodes with t = 0
 
-  # Returns a transition with blank states where appropriate
-  # 这里可能同时得到多步的transition，并且和1有关系
-  # def _get_transition(self, idx): # 这里要做一些操作，读next state，同时呢，还得做一些操作，解决history length
-  #   transition = np.array([None] * (1 + self.n))
-  #   transition[0] = self.transitions.get(idx)
-  #
-  #   for t in range(1, 1 + self.n):  # e.g. 4 5 6
-  #     if transition[t - 1].nonterminal:
-  #       transition[t] = self.transitions.get(idx + t)
-  #     else:
-  #       transition[t] = self.blank_trans  # If prev (next) frame is terminal
-  #   return transition
-
-  # 这里就是把N步的transition都提取出来
   def _get_transition_new(self, idx):
     timesteps, states, actions, rewards, nonterminals = [], [], [], [], []
 
