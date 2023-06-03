@@ -115,19 +115,9 @@ distributed = True
 elementWise = False
 if stability: assert globalView
 simulation = True
-# encoderPath = './checkpoints/encoder/encoder_official.pt'
-# encoderPath = './checkpoints/encoder/encoder_onet_Best521.pt'
-# encoderPath = './checkpoints/encoder/encoder_onet256meshpointsPretrained_Best6_8.pt'
-# encoderPath = './checkpoints/encoder/encoder_uniform_ratio_1.pt'
-# encoderPath = './checkpoints/encoder/encoder_complete_parts.pt'
-# encoderPath = './checkpoints/encoder/encoder_complete_parts_contrastive.pt'
-# encoderPath = './checkpoints/encoder/contrastive_only_no_noise.pt'
+
 encoderPath = './checkpoints/encoder/encoder_complete_parts_contrastive_normalize_no_noise_final.pt'
-# encoderPath = './checkpoints/encoder/encoder_complete_parts_new.pt'
-# encoderPath = None
-# pointCloud  = './data/pointClouds/tetris3D_tolerance_middle_pointcloud/'
-# pointCloud  = './data/pointClouds/complete_parts/'
-# pointCloud  = './data/pointClouds/my_sample_mesh/'
+
 dataAugmentation = False
 if dataAugmentation: assert objPath == './data/datas/BoxMeshTolerance'
 assert resolutionA >= 0.001

@@ -6,7 +6,24 @@ from torch.nn import functional as F
 import numpy as np
 from tools import init
 from graph_encoder import GraphAttentionEncoder
-from dataProcess import *
+
+
+def observation_decode_irregular(observation, args):
+    batchSize = observation.shape[0]
+    observation = observation.reshape((batchSize, -1))
+    actions = observation[:, 0 : args.selectedAction * 5].reshape(batchSize, -1, 5)
+    next_item = observation[:, args.selectedAction * 5 : args.selectedAction * 5 + 1].reshape((batchSize, -1))
+    actionMasks = actions[:,:, -1]
+    actions = actions[:,:, 0:-1]
+    heightMap = observation[:, args.selectedAction * 5 + 9:]
+    return next_item, actionMasks, heightMap, actions
+
+def observation_decode_irregular_k_shape(observation, args):
+    batchSize = observation.shape[0]
+    observation = observation.reshape((batchSize, -1))
+    shapes = observation[:, 0 : args.previewNum].reshape(batchSize, args.previewNum)
+    heightMap = observation[:, args.previewNum:]
+    return shapes, heightMap
 
 # Factorised NoisyLinear layer with bias
 class NoisyLinear(nn.Module):

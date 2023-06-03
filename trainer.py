@@ -286,7 +286,6 @@ class trainer_hierarchical(object):
 
         episode_rewards = deque(maxlen=10)
         episode_area = deque(maxlen=10)
-        episode_stability = deque(maxlen=10)
         episode_ratio = deque(maxlen=10)
         episode_dist = deque(maxlen=10)
         episode_occu = deque(maxlen=10)
@@ -345,8 +344,6 @@ class trainer_hierarchical(object):
                             episode_area.append(infos[_]['bottom_area'])
                     if 'ratio' in infos[_].keys():
                         episode_ratio.append(infos[_]['ratio'])
-                    if 'stability' in infos[_].keys():
-                        episode_stability.append(infos[_]['stability'])
                     if 'poseDist' in infos[_].keys():
                         if not np.isnan(infos[_]['poseDist']):
                             episode_dist.append(infos[_]['poseDist'])
@@ -416,8 +413,6 @@ class trainer_hierarchical(object):
                 self.writer.add_scalar('Metric/Reward min', np.min(episode_rewards), T)
             if len(episode_area) != 0:
                 self.writer.add_scalar('Metric/Area sum', np.mean(episode_area), T)
-            if len(episode_stability) != 0:
-                self.writer.add_scalar('Metric/Stability score', np.mean(episode_stability), T)
             if len(episode_dist) != 0:
                 self.writer.add_scalar('Metric/Pose distance', np.mean(episode_dist), T)
             if len(episode_ratio) != 0:
