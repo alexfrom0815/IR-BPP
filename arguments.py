@@ -121,8 +121,6 @@ def get_args():
 
     args.objVecLen = 9
 
-
-
     args.load_memory_path = None
     args.save_memory_path = None
     args.scale =  [100, 100, 100] # fix it! don't change it!

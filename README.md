@@ -69,9 +69,19 @@ The training data is generated on the fly. The training logs (tensorboard) are s
 If you need to adjust the container size or the , so that the resolution of height map changed, you should addjust the CNN in 'model.py' so that it can take the modified height map as input.
 
 ### Dataset
-You can download the prepared dataset from [here](https://drive.google.com/drive/folders/1TibQqFfzugui1gBI_wIcW6H6CzF_cIwj?usp=sharing).
+You can download the prepared dataset from [here](https://drive.google.com/drive/folders/1TibQqFfzugui1gBI_wIcW6H6CzF_cIwj?usp=sharing), place the downloaded dataset into IR-BPP/dataset. Each dataset includes:
 
-The dataset consists of 10000 randomly generated trajectories, each with 100 shapes. The item is a vector of length 3 or 4, the first three numbers of the item represent the size of the item, the fourth number (if any) represents the density of the item.
+shape_vhacd (folder): Watertight convex decompositions of each polygonal mesh shape. Used for accurate physics simulation.
+
+pointCloud (folder): Point clouds pre-sampled from mesh surface. The DRL agent will re-sample 1024 points and pass them to a lightweight pointNet for shape represention.
+
+
+test_sequence.pt: 
+The dataset consists of 10000 randomly generated trajectories, each with 100 shapes. Each item with a specified planar-stable pose is presented as an id, recorded in 'id2shape.pt'.
+
+id2shape.pt: Map the shape id to shape name.
+
+
 
 ### Model
 We provide pretrained models [here](https://drive.google.com/drive/folders/1s9W7lGUTvhpiQN2CDzxkxUiPAOEfj9Yr?usp=sharing).
