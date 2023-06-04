@@ -71,7 +71,7 @@ If you need to adjust the container size or the , so that the resolution of heig
 ### Dataset
 You can download the prepared dataset from [here](https://drive.google.com/drive/folders/1TibQqFfzugui1gBI_wIcW6H6CzF_cIwj?usp=sharing).
 
-[//]: # (The dataset consists of 3000 randomly generated trajectories, each with 150 items. The item is a vector of length 3 or 4, the first three numbers of the item represent the size of the item, the fourth number &#40;if any&#41; represents the density of the item.)
+The dataset consists of 10000 randomly generated trajectories, each with 100 shapes. The item is a vector of length 3 or 4, the first three numbers of the item represent the size of the item, the fourth number (if any) represents the density of the item.
 
 ### Model
 We provide pretrained models [here](https://drive.google.com/drive/folders/1s9W7lGUTvhpiQN2CDzxkxUiPAOEfj9Yr?usp=sharing).

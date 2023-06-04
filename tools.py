@@ -213,7 +213,7 @@ def shapeProcessing(shapeDict, args):
         pointsNum = 100000
         shapeArray = np.zeros((len(shapeDict), pointsNum, 3))
         for shapeIdx in shapeDict.keys():
-            # data = shapeDict[shapeIdx].replace('.obj', '.npz')
+            # dataset = shapeDict[shapeIdx].replace('.obj', '.npz')
             data = shapeDict[shapeIdx][0:-4] + '.npz'
             data = np.load(os.path.join(pointCloudPath, data))['points']
             shapeArray[shapeIdx] = data[0:pointsNum]
@@ -250,9 +250,9 @@ def shotInfoPre(args, meshScale = 1):
     dicPath = args.dicPath.replace('.pt', '')
     dicPath = dicPath.split('/')[-1]
     if meshScale != 1:
-        dataStorePath = os.path.join('./data/shotInfo', '{}_{}_{}_{}'.format(data_name, dicPath,  args.resolutionH, meshScale))
+        dataStorePath = os.path.join('dataset/shotInfo', '{}_{}_{}_{}'.format(data_name, dicPath, args.resolutionH, meshScale))
     else:
-        dataStorePath = os.path.join('./data/shotInfo', '{}_{}_{}'.format(data_name, dicPath,  args.resolutionH))
+        dataStorePath = os.path.join('dataset/shotInfo', '{}_{}_{}'.format(data_name, dicPath, args.resolutionH))
     if not os.path.exists(dataStorePath):
         os.makedirs(dataStorePath)
     for k in shapeDict.keys():

@@ -12,7 +12,7 @@ def extendMat(mat3, translation = None):
 class Interface:
     
     def __init__(self, bin = [10, 10, 5],
-                 foldername = '../data/datas/128',
+                 foldername = '../dataset/datas/128',
                  visual = False,
                  scale = [1.0,1.0,1.0],
                  simulationScale = None

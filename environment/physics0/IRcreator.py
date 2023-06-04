@@ -77,7 +77,7 @@ class LoadItemCreator(ItemCreator):
         self.data_name = data_name
         self.traj_index = 0
         self.item_index = 0
-        print("Load data set: {}".format(data_name))
+        print("Load dataset set: {}".format(data_name))
         self.item_trajs = torch.load(self.data_name)
         self.traj_nums = len(self.item_trajs)
 

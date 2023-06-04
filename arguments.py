@@ -40,7 +40,7 @@ def get_args():
                         help='Max episode length in game frames (0 to disable)')
     parser.add_argument('--history-length', type=int, default=1, metavar='T',
                         help='Number of consecutive states processed')
-    parser.add_argument('--architecture', type=str, default='canonical', choices=['canonical', 'data-efficient'],
+    parser.add_argument('--architecture', type=str, default='canonical', choices=['canonical', 'dataset-efficient'],
                         metavar='ARCH', help='Network architecture')
     parser.add_argument('--load-model', action='store_true', help='Load the trained model')
     parser.add_argument('--learn-start', type=int, default=int(5e2), metavar='STEPS',
@@ -69,7 +69,7 @@ def get_args():
 
     # some ir packing settings
     parser.add_argument('--envName', type=str, default='Physics-v0')
-    parser.add_argument('--dataset', type=str, default='blockout') # blockout general kitchen
+    parser.add_argument('--dataset', type=str, default='blockout') # blockout general kitchen abc
     parser.add_argument('--device', type=int, default=0)
     parser.add_argument('--custom', type=str, default=None)
     parser.add_argument('--hierachical', action='store_true')
@@ -99,13 +99,9 @@ def get_args():
       print(' ' * 26 + k + ': ' + str(v))
 
 
-    args.objPath = './data/final_data/{}/vhacd_with_pose'.format(args.dataset)
-    args.pointCloud = './data/final_data/{}/pointCloud_with_pose'.format(args.dataset)
-
-    if args.dataset == 'general':
-        args.dicPath = './data/final_data/{}/dicPathHalf.pt'.format(args.dataset)
-    else:
-        args.dicPath = './data/final_data/{}/dicPath.pt'.format(args.dataset)
+    args.objPath = './dataset/{}/shape_vhacd'.format(args.dataset)
+    args.pointCloud = './dataset/{}/pointCloud'.format(args.dataset)
+    args.dicPath = './dataset/{}/id2shape.pt'.format(args.dataset)
 
     if  args.dataset == 'kitchen':
         args.dataSample = 'category'
@@ -140,7 +136,7 @@ def get_args():
     args.shotInfo = shotInfoPre(args, args.meshScale)
     args.simulation = True
     args.distributed = True
-    args.test_name = './data/final_data/{}/test_random.pt'.format(args.dataset)
+    args.test_name = './dataset/{}/test_sequence.pt'.format(args.dataset)
     args.shapeArray = shapeProcessing(args.shapeDict, args)
 
     if args.evaluate:
