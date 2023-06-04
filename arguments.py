@@ -143,7 +143,10 @@ def get_args():
     args.test_name = './data/final_data/{}/test_random.pt'.format(args.dataset)
     args.shapeArray = shapeProcessing(args.shapeDict, args)
 
+    if args.evaluate:
+        args.num_processes = 1
+
     # temp setting
-    args.evaluate = True
+    # args.evaluate = True
 
     return args
