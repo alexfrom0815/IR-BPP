@@ -32,32 +32,7 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets, args):
         else:
             if args.envName == 'Physics-v0':
                 env = gym.make(args.envName,
-                               objPath=args.objPath,
-                               resolutionAct=args.resolutionA,
-                               resolutionH=args.resolutionH,
-                               shapeDict=args.shapeDict,
-                               infoDict=args.infoDict,
-                               dicPath=args.dicPath,
-                               categories=args.categories,
-                               bin_dimension=args.bin_dimension,
-                               ZRotNum=args.ZRotNum,
-                               heightMap=args.heightMap,
-                               useHeightMap=args.useHeightMap,
-                               visual=args.visual,
-                               globalView=args.globalView,
-                               poseDist=args.poseDist,
-                               shotInfo=args.shotInfo,
-                               elementWise=args.elementWise,
-                               simulation = args.simulation,
-                               scale = args.scale,
-                               selectedAction = args.selectedAction,
-                               previewNum = args.previewNum,
-                               dataSample=args.dataSample,
-                               test = args.test,
-                               dataname = args.test_name,
-                               maxBatch=args.maxBatch,
-                               meshScale=args.meshScale,
-                               heightResolution = args.heightResolution
+                               args = args
                                )
 
             else:
@@ -109,32 +84,7 @@ def make_vec_envs(args,
     """
     if args.envName == 'Physics-v0':
         env = gym.make(args.envName,
-                       objPath=args.objPath,
-                       resolutionAct=args.resolutionA,
-                       resolutionH=args.resolutionH,
-                       shapeDict=args.shapeDict,
-                       infoDict=args.infoDict,
-                       dicPath=args.dicPath,
-                       categories=args.categories,
-                       bin_dimension=args.bin_dimension,
-                       ZRotNum=args.ZRotNum,
-                       heightMap=args.heightMap,
-                       useHeightMap=args.useHeightMap,
-                       visual=args.visual,
-                       globalView=args.globalView,
-                       poseDist=args.poseDist,
-                       shotInfo=args.shotInfo,
-                       elementWise=args.elementWise,
-                       simulation = args.simulation,
-                       scale = args.scale,
-                       selectedAction = args.selectedAction,
-                       previewNum = args.previewNum,
-                       dataSample=args.dataSample,
-                       test = args.test,
-                       dataname=args.test_name,
-                       maxBatch = args.maxBatch,
-                       meshScale=args.meshScale,
-                       heightResolution = args.heightResolution
+                       args = args
                        )
     else:
         assert False

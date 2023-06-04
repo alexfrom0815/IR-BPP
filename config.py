@@ -11,7 +11,6 @@ boxset = []
 useHeightMap = False
 visual = False
 globalView = False
-poseDist = False
 distributed = False
 
 # simulation = False
@@ -27,7 +26,7 @@ scale = [100, 100, 100] # fix it! don't change it!
 
 # data_name = 'BoxMeshRebuttal'
 # data_name = 'IR_mix_mass'
-data_name = 'tetris3D_tolerance_middle_mass'
+data_name = 'blockout'
 # data_name = 'IR_concaveArea3_mass'
 # data_name = 'IR_abc_good'
 
@@ -64,7 +63,6 @@ else:
     meshScale = 1
 
 fullData =  True
-boundingBoxVec = False
 boxPack = False
 objVecLen = 9
 
@@ -111,7 +109,6 @@ poseDist   = False
 actionType = 'Uniform' # Uniform, RotAction, LineAction, HeuAction
 rewardType = 'ratio'  # number, aabb, ratio
 distributed = True
-elementWise = False
 if stability: assert globalView
 simulation = True
 
@@ -128,7 +125,6 @@ selectedAction = 500
 if selectedAction: assert  actionType == 'Uniform'
 model = None
 # model = './checkpoints/BlockLInUse_mass_vhacd_another-2022.08.01-17-47-45_30.pt'
-originShape = False
 
 hierachical = False
 previewNum = 1

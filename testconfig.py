@@ -169,7 +169,7 @@ if envName == 'Physics-v0':
 
 
     # data_name = 'IR_mix_mass'
-    # data_name = 'tetris3D_tolerance_middle_mass'
+    # data_name = 'blockout'
     # data_name = 'IR_concaveArea3_mass'
     data_name = 'IR_abc_good'
 

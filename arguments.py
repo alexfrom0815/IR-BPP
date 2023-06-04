@@ -1,8 +1,11 @@
 import argparse
+import torch
+import numpy as np
+from tools import load_shape_dict, shotInfoPre, shapeProcessing
 
 def get_args():
     # Note that hyperparameters may originally be reported in ATARI game frames instead of agent steps
-    parser = argparse.ArgumentParser(description='Rainbow')
+    parser = argparse.ArgumentParser(description='Rainbow for IR BPP')
 
     parser.add_argument('--hidden-size', type=int, default=128, metavar='SIZE', help='Network hidden size')
     parser.add_argument('--noisy-std', type=float, default=0.5, metavar='σ',
@@ -66,24 +69,80 @@ def get_args():
     parser.add_argument('--adam-eps', type=float, default=1.5e-4, metavar='ε', help='Adam epsilon')
 
     # some ir packing settings
+    parser.add_argument('--envName', type=str, default='Physics-v0')
+    parser.add_argument('--dataset', type=str, default='blockout') # blockout general kitchen
     parser.add_argument('--device', type=int, default=0)
     parser.add_argument('--custom', type=str, default=None)
     parser.add_argument('--data_name', type=str, default=None)
     parser.add_argument('--hierachical', action='store_true')
     parser.add_argument('--previewNum', type=int, default=1) # 1 3 5 10
-    parser.add_argument('--num_processes', type=int, default=16) # 16 1
+    parser.add_argument('--num_processes', type=int, default=2) # 16 1
     parser.add_argument('--distributed', action='store_true')
     parser.add_argument('--samplePointsNum', type=int, default=1024)
-    parser.add_argument('--selectedAction', type=int, default=False)
+    parser.add_argument('--selectedAction', type=int, default=500) # defalt 500
+    parser.add_argument('--maxBatch', type=int, default=2) # how many batches for simulation
     parser.add_argument('--globalView', type=bool, default = False)
+    parser.add_argument('--visual', type=bool, default = False)
     parser.add_argument('--resolutionA', type=float, default = 0.02)
     parser.add_argument('--resolutionH', type=float, default = 0.01)
+    parser.add_argument('--resolutionZ', type=float, default = 0.01)
     parser.add_argument('--model', type=str, default=None)
+
 
     args = parser.parse_args()
     print('first hierachical',args.hierachical)
     print(' ' * 26 + 'Options')
     for k, v in vars(args).items():
       print(' ' * 26 + k + ': ' + str(v))
+
+
+    args.objPath = './data/final_data/{}/vhacd_with_pose'.format(args.dataset)
+    args.pointCloud = './data/final_data/{}/pointCloud_with_pose'.format(args.dataset)
+
+    if args.dataset == 'general':
+        args.dicPath = './data/final_data/{}/dicPathHalf.pt'.format(args.dataset)
+    else:
+        args.dicPath = './data/final_data/{}/dicPath.pt'.format(args.dataset)
+
+    if  args.dataset == 'kitchen':
+        args.dataSample = 'category'
+    else:
+        args.dataSample = 'instance'
+
+    args.categories = len(torch.load(args.dicPath))
+    args.bin_dimension = np.round([0.32, 0.32, 0.30], decimals=6)
+
+    args.ZRotNum = 8  # Max: 4/8
+    if  args.dataset == 'blockout':
+        args.ZRotNum = 4  # Max: 4/8
+    elif 'box' in args.dataset:
+        args.ZRotNum = 2  # Max: 4/8
+    else:
+        assert False
+
+    args.objVecLen = 9
+
+
+
+    args.load_memory_path = None
+    args.save_memory_path = None
+    args.scale =  [100, 100, 100] # fix it! don't change it!
+    args.meshScale = 1
+    args.heightResolution = args.resolutionZ
+    args.shapeDict, args.infoDict = load_shape_dict(args, True, scale=args.meshScale)
+    args.physics = True
+    args.heightMap = True
+    args.useHeightMap = True
+    args.globalView = True if args.evaluate else False
+    args.shotInfo = shotInfoPre(args, args.meshScale)
+    args.simulation = True
+
+    args.test = args.evaluate
+
+    if args.dataSample == 'pose':
+        args.test_name = './data/dataset/random_index_{}.pt'.format(args.categories)
+    else:
+        args.test_name = './data/final_data/{}/random_cate_half.pt'.format(args.data_name)
+    args.shapeArray = shapeProcessing(args.shapeDict, args)
 
     return args

@@ -12,63 +12,47 @@ import random
 
 class PackingGame(gym.Env):
     def __init__(self,
-                 resolutionAct,
-                 resolutionH = 0.01,
-                 bin_dimension = [0.32, 0.32, 0.3],
-                 objPath = './data/datas/256',
-                 shapeDict = None,
-                 infoDict = None,
-                 dicPath = None,
-                 test = False,
-                 dataname = None,
-                 ZRotNum=None,
-                 heightMap = False,
-                 visual = False,
-                 globalView = False, # if we cancel the global view, the heightmap need to be re-scanned.
-                 shotInfo=None,
-                 simulation=True,
-                 scale = [100,100,100],
-                 selectedAction = False,
-                 previewNum = 1,
-                 dataSample='instance',
-                 maxBatch = 2,
-                 meshScale = 1,
-                 heightResolution = 0.01,
-                 **kwargs):
+                 args
+    ):
+        args = vars(args)
+        self.resolutionAct = args['resolutionA']
+        self.resolutionH   = args['resolutionH']
+        self.bin_dimension = args['bin_dimension']
+        self.scale         = args['scale']
+        self.objPath       = args['objPath']
+        self.meshScale     = args['meshScale']
+        self.shapeDict     = args['shapeDict']
+        self.infoDict      = args['infoDict']
+        self.dicPath       = load(args['dicPath'])
+        self.ZRotNum       = args['ZRotNum']
+        self.heightMapPre  = args['heightMap']
+        self.globalView    = args['globalView']
+        self.selectedAction= args['selectedAction']
+        self.previewNum    = args['previewNum']
+        self.chooseItem    = self.previewNum > 1
+        self.simulation    = args['simulation']
+        self.test          = args['test']
+        self.maxBatch      =  args['maxBatch']
+        self.heightResolution   = args['resolutionZ']
+        self.dataSample    = args['dataSample']
+        self.dataname      = args['dataset']
 
-        self.resolutionAct = resolutionAct
-        self.bin_dimension = np.round(bin_dimension, decimals=6)
-        self.scale = np.array(scale)
-        self.objPath = objPath
-        self.meshScale = meshScale
-
-        self.interface = Interface(bin=self.bin_dimension, foldername = objPath,
-                                   visual=visual, scale = self.scale, simulationScale=self.meshScale)
-        self.shapeDict = shapeDict
-        self.infoDict  = infoDict
-        self.dicPath = load(dicPath)
-        self.rangeX_A, self.rangeY_A = np.ceil(self.bin_dimension[0:2] / resolutionAct).astype(np.int32)
-
-        self.ZRotNum    = ZRotNum
-        self.heightMapPre = heightMap
-        self.globalView = globalView
-        self.selectedAction = selectedAction
-        self.chooseItem = previewNum > 1
-        self.previewNum = previewNum
-
-        self.simulation = simulation
+        self.interface = Interface(bin=self.bin_dimension, foldername = self.objPath,
+                                   visual=args['visual'], scale = self.scale, simulationScale=self.meshScale)
         self.item_vec = np.zeros((1000, 9))
+        self.rangeX_A, self.rangeY_A = np.ceil(self.bin_dimension[0:2] / self.resolutionAct).astype(np.int32)
+        self.space = Space(self.bin_dimension, self.resolutionAct, self.resolutionH, False,   self.ZRotNum,
+                           args['shotInfo'], self.scale)
 
-        self.space = Space(self.bin_dimension, resolutionAct, resolutionH, False,   self.ZRotNum, shotInfo, self.scale)
-        if test and dataname is not None:
-            self.item_creator = LoadItemCreator(data_name=dataname)
+        if self.test and self.dataname is not None:
+            self.item_creator = LoadItemCreator(data_name=self.dataname)
         else:
-            if dataSample == 'category':
+            if self.dataSample == 'category':
                 self.item_creator = RandomCateCreator(np.arange(0, len(self.shapeDict.keys())), self.dicPath)
-            elif dataSample == 'instance':
+            elif self.dataSample == 'instance':
                 self.item_creator = RandomInstanceCreator(np.arange(0, len(self.shapeDict.keys())), self.dicPath)
             else:
-                assert dataSample == 'pose'
+                assert self.dataSample == 'pose'
                 self.item_creator = RandomItemCreator(np.arange(0, len(self.shapeDict.keys())))
 
         self.next_item_vec = np.zeros((9))
@@ -76,7 +60,7 @@ class PackingGame(gym.Env):
         self.item_idx = 0
 
         self.transformation = []
-        DownFaceList, ZRotList = getRotationMatrix(1, ZRotNum)
+        DownFaceList, ZRotList = getRotationMatrix(1, self.ZRotNum)
         for d in DownFaceList:
             for z in ZRotList:
                 quat = transforms3d.quaternions.mat2quat(np.dot(z, d)[0:3, 0:3])
@@ -114,10 +98,7 @@ class PackingGame(gym.Env):
         self.orderAction = 0
         self.hierachical = False
 
-        self.test = test
 
-        self.maxBatch = maxBatch
-        self.heightResolution = heightResolution
 
     def seed(self, seed=None):
         self.seed = seed

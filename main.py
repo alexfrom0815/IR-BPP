@@ -56,97 +56,12 @@ def main(args):
     if not os.path.exists(log_writer_path):
       os.makedirs(log_writer_path)
     writer = SummaryWriter(log_writer_path)
-    args.envName = config.envName
-
-    if args.data_name is None:
-        args.objPath = config.objPath
-        args.pointCloud = config.pointCloud
-        args.dicPath = config.dicPath
-        args.dataSample = config.dataSample
-
-        args.resolutionA = config.resolutionA
-        args.resolutionH = config.resolutionH
-
-    else:
-        args.objPath = './data/final_data/{}/vhacd_with_pose'.format(args.data_name)
-        args.pointCloud = './data/final_data/{}/pointCloud_with_pose'.format(args.data_name)
-        if 'IR_mix' in args.data_name:
-            args.dicPath = './data/final_data/{}/dicPathHalf.pt'.format(args.data_name)
-        else:
-            args.dicPath = './data/final_data/{}/dicPath.pt'.format(args.data_name)
-        if 'concave' in args.data_name:
-            args.dataSample = 'category'
-        else:
-            args.dataSample = 'instance'
-
-    args.categories = len(torch.load(args.dicPath))
-
-    if args.data_name is None:
-        args.bin_dimension = config.bin_dimension
-        args.ZRotNum = config.ZRotNum
-    else:
-        if 'tetris' in args.dicPath:
-            args.bin_dimension = [0.32, 0.32, 0.30]
-        else:
-            args.bin_dimension = [0.32, 0.32, 0.30]
-        if 'IR' in args.dicPath:
-            args.ZRotNum = 8  # Max: 4/8
-        elif 'Box' in args.dicPath:
-            args.ZRotNum = 2  # Max: 4/8
-        else:
-            args.ZRotNum = 4  # Max: 4/8
-
-    args.bin_dimension = np.round(args.bin_dimension, decimals=6)
-    args.boundingBoxVec = config.boundingBoxVec
-    args.objVecLen = config.objVecLen
-    args.load_memory_path = config.load_memory_path
-    args.save_memory_path = config.save_memory_path
-    args.scale = config.scale
-    args.meshScale = config.meshScale
-    args.heightResolution = config.heightResolution
-
-    args.selectedAction = config.selectedAction if args.data_name is None else args.selectedAction
-    if args.data_name is None:
-        args.model = config.model
-
-    args.samplePointsNum = config.samplePointsNum if args.data_name is None else args.samplePointsNum
-    assert 'vhacd' in  args.objPath
-
-
-    if config.originShape:
-        args.originDict = load_shape_dict(args, origin = True, scale=args.meshScale)
-    args.shapeDict, args.infoDict = load_shape_dict(args, True,  scale=args.meshScale)
-    args.physics = True
-
-    args.num_processes = config.num_processes if args.data_name is None else args.num_processes
-    args.seed = config.seed
-    args.heightMap = config.heightMap
-    args.useHeightMap = config.useHeightMap
-    args.visual = config.visual
-    args.globalView = config.globalView if args.data_name is None else args.globalView
-    args.poseDist  = config.poseDist
-    args.shotInfo = shotInfoPre(args, args.meshScale)
-    args.elementWise = config.elementWise
-    args.encoderPath = config.encoderPath
-    args.simulation = config.simulation
-    args.test = config.test
-    args.test_name = config.test_name
-    args.hierachical = config.hierachical if args.data_name is None else args.hierachical
-    args.previewNum = config.previewNum if args.data_name is None else args.previewNum
-    args.shapeArray = shapeProcessing(args.shapeDict, args)
-
-    args.maxBatch = config.maxBatch
-
-
     envs, spaces, obs_len = make_vec_envs(args, './logs/runinfo', True)
-
-
     args.action_space = spaces[1].n
 
 
-    args.level = 'location'
     if not args.hierachical:
-    # Create the main Agent for IR pack
+        args.level = 'location'
         dqn = Agent(args)
         memNum = args.num_processes
         memory_capacity = int(args.memory_capacity / memNum)
@@ -161,12 +76,13 @@ def main(args):
 
         # todo finish the init order policy part
         orderArgs = copy.deepcopy(args)
+        orderArgs.level = 'order'
         orderArgs.action_space = args.previewNum
         orderArgs.model = orderModelPath
-        orderArgs.level = 'order'
         orderDQN = Agent(orderArgs)
 
         locArgs = copy.deepcopy(args)
+        locArgs.level = 'location'
         locArgs.previewNum = 1
         locArgs.action_space = args.selectedAction
         locArgs.model = locModelPath
