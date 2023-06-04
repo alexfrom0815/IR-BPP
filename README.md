@@ -15,7 +15,7 @@ As our TOG reviewers suggested, although there have been numerous packing papers
 
 If you are interested, please star this repo! 
 
-![PCT](images/teaser.png)
+![IR-BPP](images/teaser.png)
 
 ## Paper
 For more details, please see our paper [Learning Physically Realizable Skills for Online Packing of General 3D Shapes](https://openreview.net/forum?id=bfuGjlCwAq). If this code is useful for your work, please cite our paper:
@@ -29,39 +29,34 @@ For more details, please see our paper [Learning Physically Realizable Skills fo
 }
 ``` 
 
+### performance 
+We provide the packing utility performance of our method on each dataset here for quick comparision. We run all methods in the same environment setup with the same test sequences. A total of 2000 object sequences, randomly generated from each dataset, are tested.
 
-[//]: # (## Dependencies)
+| Dataset            | Online | Buffered (k = 3) | Buffered (k = 5) | Buffered (k = 10) |
+|--------------------|:------:|-----------------:|-----------------:|------------------:|
+| *General*          | 44.5%  |            45.3% |            47.5% |             55.7% |
+| *BlockOut*         | 71.0%  |            71.7% |            74.8% |             78.0% |
+| *Kitchen*          | 39.2%  |            44.3% |            48.8% |             57.8$ |
+| *ABC*              | 34.0$  |            35.3% |            37.4% |             41.0% |
+| *Box (discrete)*   |        |                  |                  |                   |
+| *Box (continuous)* |        |                  |                  |                   |
 
-[//]: # (* NumPy)
+## Dependencies
+* Please install dependencies by running this: pip install -r requirements.txt
+* This code is verified on OS: Ubuntu 16.04.
 
-[//]: # (* gym)
+## Quick start
 
-[//]: # (* Python>=3.7)
+For training online IR-BPP on *blockout* dataset (mentioned in our paper) with our method and the default arguments:
+```bash
+python main.py 
+```
+The training data is generated on the fly. The training logs (tensorboard) are saved in './logs/runs'. Related file backups are saved in './logs/experiment'.
 
-[//]: # (* [PyTorch]&#40;http://pytorch.org/&#41; >=1.7)
+## Usage
 
-[//]: # (* My suggestion: Python == 3.7, gym==0.13.0, torch == 1.10, OS: Ubuntu 16.04)
+### Data description
 
-[//]: # (## Quick start)
-
-[//]: # ()
-[//]: # (For training online 3D-BPP on setting 2 &#40;mentioned in our paper&#41; with our PCT method and the default arguments:)
-
-[//]: # (```bash)
-
-[//]: # (python main.py )
-
-[//]: # (```)
-
-[//]: # (The training data is generated on the fly. The training logs &#40;tensorboard&#41; are saved in './logs/runs'. Related file backups are saved in './logs/experiment'.)
-
-[//]: # ()
-[//]: # (## Usage)
-
-[//]: # ()
-[//]: # (### Data description)
-
-[//]: # ()
 [//]: # (Describe your 3D container size and 3D item size in 'givenData.py')
 
 [//]: # (```)
@@ -71,97 +66,41 @@ For more details, please see our paper [Learning Physically Realizable Skills fo
 [//]: # (item_size_set:  A list records the size of each item. The size of each item is also described by a vector of length 3.)
 
 [//]: # (```)
+If you need to adjust the container size or the , so that the resolution of height map changed, you should addjust the CNN in 'model.py' so that it can take the modified height map as input.
 
-[//]: # (If you need to )
-
-[//]: # (### Dataset)
-
-[//]: # (You can download the prepared dataset from [here]&#40;https://drive.google.com/drive/folders/1QLaLLnpVySt_nNv0c6YetriHh0Ni-yXY?usp=sharing&#41;.)
+### Dataset
+You can download the prepared dataset from [here](https://drive.google.com/drive/folders/1TibQqFfzugui1gBI_wIcW6H6CzF_cIwj?usp=sharing).
 
 [//]: # (The dataset consists of 3000 randomly generated trajectories, each with 150 items. The item is a vector of length 3 or 4, the first three numbers of the item represent the size of the item, the fourth number &#40;if any&#41; represents the density of the item.)
 
-[//]: # ()
-[//]: # (### Model)
+### Model
+We provide pretrained models [here](https://drive.google.com/drive/folders/1s9W7lGUTvhpiQN2CDzxkxUiPAOEfj9Yr?usp=sharing).
 
-[//]: # (We provide [pretrained models]&#40;https://drive.google.com/drive/folders/14PC3aVGiYZU5AaGdNM9YOVdp8pPiZ3fe?usp=sharing&#41; trained using the EMS scheme in a discrete environment, where the bin size is &#40;10,10,10&#41; and the item size range from 1 to 5.)
+[//]: # (trained using the EMS scheme in a discrete environment, where the bin size is &#40;10,10,10&#41; and the item size range from 1 to 5.)
 
-[//]: # ()
-[//]: # (### Training)
+### Training
 
-[//]: # ()
-[//]: # (For training online 3D BPP instances on setting 1 &#40;80 internal nodes and 50 leaf nodes&#41; nodes:)
+For training online 3D BPP instances on  BlockOut:
+```bash
+python main.py --device 0 --data_name blockout --custom blockoutexp --previewNum 1  --num_processes 16 --distributed --samplePointsNum 1024 --selectedAction 500 --resolutionA 0.02 --resolutionH 0.01
+```
+If you want to train a model that works on the **buffered** case with buffer size 10, add '--hierachical' and '--previewNum 10'':
+```bash
+python main.py --device 0 --data_name blockout  --custom blockoutexp --hierachical  --previewNum 10 --num_processes 16 --distributed --samplePointsNum 1024 --selectedAction 500 --resolutionA 0.02 --resolutionH 0.01
+```
 
-[//]: # (```bash)
 
-[//]: # (python main.py --setting 1 --internal-node-holder 80 --leaf-node-holder 50)
+### Evaluation
+To evaluate a model, you can add the `--evaluate` flag to `main.py`, for example:
+```bash
+python main.py --evaluate --device 0 --data_name blockout --custom blockoutexp --previewNum 1  --num_processes 16 --distributed --samplePointsNum 1024 --selectedAction 500 --resolutionA 0.02 --resolutionH 0.01
+```
 
-[//]: # (```)
+### Help
+```bash
+python main.py -h
+```
 
-[//]: # (If you want to train a model that works on the **continuous** domain, add '--continuous', don't forget to change your problem in 'givenData.py':)
-
-[//]: # (```bash)
-
-[//]: # (python main.py --continuous --setting 1 --internal-node-holder 80 --leaf-node-holder 50)
-
-[//]: # (```)
-
-[//]: # (#### Warm start)
-
-[//]: # (You can initialize a run using a pretrained model:)
-
-[//]: # (```bash)
-
-[//]: # (python main.py --load-model --model-path path/to/your/model)
-
-[//]: # (```)
-
-[//]: # ()
-[//]: # (### Evaluation)
-
-[//]: # (To evaluate a model, you can add the `--evaluate` flag to `evaluation.py`:)
-
-[//]: # (```bash)
-
-[//]: # (python evaluation.py --evaluate --load-model --model-path path/to/your/model --load-dataset --dataset-path path/to/your/dataset)
-
-[//]: # (```)
-
-[//]: # (### Heuristic)
-
-[//]: # (Running heuristic.py for test heuristic baselines, the source of the heuristic algorithm has been marked in the code:)
-
-[//]: # ()
-[//]: # (Running heuristic on setting 1 （discrete） with LASH method:)
-
-[//]: # (```)
-
-[//]: # (python heuristic.py --setting 1 --heuristic LSAH --load-dataset  --dataset-path setting123_discrete.pt)
-
-[//]: # (```)
-
-[//]: # ()
-[//]: # (Running heuristic on setting 2 （continuous） with OnlineBPH method:)
-
-[//]: # (```)
-
-[//]: # (python heuristic.py --continuous --setting 2 --heuristic OnlineBPH --load-dataset  --dataset-path setting2_continuous.pt)
-
-[//]: # (```)
-
-[//]: # ()
-[//]: # (### Help)
-
-[//]: # (```bash)
-
-[//]: # (python main.py -h)
-
-[//]: # (python evaluation.py -h)
-
-[//]: # (python heuristic.py -h)
-
-[//]: # (```)
-
-[//]: # ()
 ### License
 ```
 This source code is released only for academic use. Please do not use it for commercial purpose without authorization of the author.
