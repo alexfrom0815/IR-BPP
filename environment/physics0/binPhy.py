@@ -35,7 +35,7 @@ class PackingGame(gym.Env):
         self.maxBatch      =  args['maxBatch']
         self.heightResolution   = args['resolutionZ']
         self.dataSample    = args['dataSample']
-        self.dataname      = args['dataset']
+        self.dataname      = args['test_name']
 
         self.interface = Interface(bin=self.bin_dimension, foldername = self.objPath,
                                    visual=args['visual'], scale = self.scale, simulationScale=self.meshScale)

@@ -72,7 +72,6 @@ def get_args():
     parser.add_argument('--dataset', type=str, default='blockout') # blockout general kitchen
     parser.add_argument('--device', type=int, default=0)
     parser.add_argument('--custom', type=str, default=None)
-    parser.add_argument('--data_name', type=str, default=None)
     parser.add_argument('--hierachical', action='store_true')
     parser.add_argument('--previewNum', type=int, default=1) # 1 3 5 10
     parser.add_argument('--num_processes', type=int, default=2) # 16 1
@@ -141,12 +140,10 @@ def get_args():
     args.shotInfo = shotInfoPre(args, args.meshScale)
     args.simulation = True
     args.distributed = True
-    # args.test = args.evaluate
-
-    if args.dataSample == 'pose':
-        args.test_name = './data/dataset/random_index_{}.pt'.format(args.categories)
-    else:
-        args.test_name = './data/final_data/{}/random_cate_half.pt'.format(args.data_name)
+    args.test_name = './data/final_data/{}/test_random.pt'.format(args.dataset)
     args.shapeArray = shapeProcessing(args.shapeDict, args)
+
+    # temp setting
+    args.evaluate = True
 
     return args

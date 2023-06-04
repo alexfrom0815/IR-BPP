@@ -307,10 +307,6 @@ def test(args, dqn, printInfo = False, timeStr = None, times = ''):
     dqn.online_net.eval()
     assert not dqn.online_net.training
 
-    placementTime = 0
-    placementCounter = 0
-    simulationTime = 0
-    networkTime = 0
     for _ in range(args.evaluation_episodes):
         while True:
             s = time.time()
@@ -324,12 +320,6 @@ def test(args, dqn, printInfo = False, timeStr = None, times = ''):
             state, reward, done, _ = env.step(action.item())  # Step
 
             e = time.time()
-            placementTime = placementTime + e - s
-            networkTime = networkTime + net_e - net_s
-            simulationTime = simulationTime + env.endSimulation - env.startSimulation
-            placementCounter += 1
-            print(placementTime / placementCounter, (placementTime - simulationTime) / placementCounter,
-                  (placementTime - simulationTime - networkTime) / placementCounter, networkTime / placementCounter)
 
             reward_sum += reward
             episode_length += 1
@@ -337,8 +327,6 @@ def test(args, dqn, printInfo = False, timeStr = None, times = ''):
             if done:
                 ratio = env.get_ratio()
                 T_ratio.append(ratio)
-                occupancy = env.get_occupancy()
-                T_ratio_local.append(ratio / occupancy)
                 T_rewards.append(reward_sum)
                 T_lengths.append(episode_length)
                 if printInfo:
@@ -346,11 +334,8 @@ def test(args, dqn, printInfo = False, timeStr = None, times = ''):
                     print('avg_length:', np.mean(T_lengths))
                     print('var_reward:', np.var(T_rewards))
                     print('var_length:', np.var(T_lengths))
-
                     print('Mean Ratio:', np.mean(T_ratio))
-                    print('Mean Ratio Local:', np.mean(T_ratio_local))
                     print('Var Ratio:', np.var(T_ratio))
-                    print('Var Ratio Local:', np.var(T_ratio_local))
                     print('Episode {} Ratio {}'.format(env.item_creator.traj_index, reward_sum))
                 all_episodes.append(copy.deepcopy( env.packed))
                 np.save(os.path.join('./logs/evaluation', timeStr, 'trajs{}.npy'.format(times)), all_episodes)
@@ -364,9 +349,7 @@ def test(args, dqn, printInfo = False, timeStr = None, times = ''):
     print('var_reward:', np.var(T_rewards))
     print('var_length:', np.var(T_lengths))
     print('Mean Ratio:', np.mean(T_ratio))
-    print('Mean Ratio Local:', np.mean(T_ratio_local))
     print('Var Ratio:', np.var(T_ratio))
-    print('Var Ratio Local:', np.var(T_ratio_local))
     if not os.path.exists(os.path.join('./logs/evaluation', timeStr)):
         os.makedirs(os.path.join('./logs/evaluation', timeStr))
     np.save(os.path.join('./logs/evaluation', timeStr, 'trajs{}.npy'.format(times)), all_episodes)
@@ -433,8 +416,6 @@ def test_hierachical(args, dqns, printInfo = False, timeStr = None, times = ''):
             if done:
                 ratio = env.get_ratio()
                 T_ratio.append(ratio)
-                occupancy = env.get_occupancy()
-                T_ratio_local.append(ratio / occupancy)
                 T_rewards.append(reward_sum)
                 T_lengths.append(episode_length)
                 all_episodes.append(copy.deepcopy( env.packed))
@@ -445,9 +426,7 @@ def test_hierachical(args, dqns, printInfo = False, timeStr = None, times = ''):
                     print('var_length:', np.var(T_lengths))
 
                     print('Mean Ratio:', np.mean(T_ratio))
-                    print('Mean Ratio Local:', np.mean(T_ratio_local))
                     print('Var Ratio:', np.var(T_ratio))
-                    print('Var Ratio Local:', np.var(T_ratio_local))
                     print('Episode {} Ratio {}'.format(env.item_creator.traj_index, reward_sum))
 
                 np.save(os.path.join('./logs/evaluation', timeStr, 'trajs{}.npy'.format(times)), all_episodes)
@@ -475,38 +454,5 @@ def test_hierachical(args, dqns, printInfo = False, timeStr = None, times = ''):
 
 def make_eval_env(args):
     env = gym.make(args.envName,
-                       objPath=args.objPath,
-                       resolutionAct=args.resolutionA,
-                       resolutionH=args.resolutionH,
-                       shapeDict=args.shapeDict,
-                       infoDict=args.infoDict,
-                       dicPath=args.dicPath,
-                       categories=args.categories,
-                       bin_dimension=args.bin_dimension,
-                       packed_holder=args.packed_holder,
-                       boxPack=args.boxPack,
-                       ZRotNum=args.ZRotNum,
-                       heightMap=args.heightMap,
-                       useHeightMap=args.useHeightMap,
-                       visual=args.visual,
-                       globalView=args.globalView,
-                       stability=args.stability,
-                       poseDist=args.poseDist,
-                       shotInfo=args.shotInfo,
-                       rewardType=args.rewardType,
-                       actionType=args.actionType,
-                       elementWise=args.elementWise,
-                       test=True,
-                       dataname=args.test_name,
-                       simulation = args.simulation,
-                       scale = args.scale,
-                       selectedAction = args.selectedAction,
-                       convexAction = args.convexAction,
-                       previewNum = args.previewNum,
-                       dataSample = args.dataSample,
-                       meshScale = args.meshScale,
-                       heightResolution = args.heightResolution,
-                       maxBatch = args.maxBatch,
-                       timeStr = args.timeStr
-        )
+                   args = args)
     return env

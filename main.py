@@ -16,12 +16,7 @@ from envs import make_vec_envs
 def main(args):
 
     # The name of this experiment, related file backups and experiment tensorboard logs will
-    if args.custom is None:
-        assert args.data_name is None
-        custom = input('Please input the experiment name\n')
-    else:
-        custom = args.custom
-
+    custom = input('Please input the experiment name\n')
     timeStr = custom + '-' + time.strftime('%Y.%m.%d-%H-%M-%S', time.localtime(time.time()))
 
     if torch.cuda.is_available() and not args.disable_cuda:
