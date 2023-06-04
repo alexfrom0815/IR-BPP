@@ -1,11 +1,11 @@
 # IR-BPP: Learning Physically Realizable Skills for Online Packing of General 3D Shapes
 
 
-We develop a learning-based solver for packing arbitrarily-shaped objects in a physically realizable problem setting, which is arguably the most challenging setting of bin packing problems. This work is newly been accpted by **ACM Transactions on Graphics (TOG)**. 
+We develop a learning-based solver for packing arbitrarily-shaped objects in a physically realizable problem setting, which is arguably the most challenging setting of bin packing problems. This work is newly been accepted by **ACM Transactions on Graphics (TOG)**. 
 See these links for video demonstration: [YouTube](https://www.youtube.com/watch?v=z4Q05EGcW64&t=56s), [bilibili](https://www.bilibili.com/video/BV1ho4y1M7gG/)
 
 
-We release our source code and build well-established benchmark datasets. Our datasets consisting of training and testing objects, separated into discrete cuboidal sets, continuous cuboidal sets, and large-scale irregular sets with various geometric characteristics, and specifying a container size. 
+We release our source code and build well-established benchmark datasets. Our datasets consist of training and testing objects, separated into discrete cuboidal sets, continuous cuboidal sets, and large-scale irregular sets with various geometric characteristics, and specifying a container size. 
 
 As our TOG reviewers suggested, although there have been numerous packing papers using RL for higher packing density, there is a lack of a **common** dataset to benchmark performance. We believe that having such a common benchmark would greatly facilitate research and comparison of different techniques.
 
@@ -30,7 +30,7 @@ For more details, please see our paper [Learning Physically Realizable Skills fo
 ``` 
 
 ### performance 
-We provide the packing utility performance of our method on each dataset here for quick comparision. We run all methods in the same environment setup with the same test sequences. A total of 2000 object sequences, randomly generated from each dataset, are tested.
+We provide the packing utility performance of our method on each dataset here for quick comparison. We run all methods in the same environment setup with the same test sequences. A total of 2000 object sequences, randomly generated from each dataset, are tested.
 
 | Dataset            | Online | Buffered (k = 3) | Buffered (k = 5) | Buffered (k = 10) |
 |--------------------|:------:|-----------------:|-----------------:|------------------:|
@@ -47,7 +47,7 @@ We provide the packing utility performance of our method on each dataset here fo
 
 ## Quick start
 
-For training online IR-BPP on *blockout* dataset (mentioned in our paper) with our method and the default arguments:
+For training online IR-BPP on the *blockout* dataset (mentioned in our paper) with our method and the default arguments:
 ```bash
 python main.py 
 ```
@@ -69,22 +69,23 @@ The training data is generated on the fly. The training logs (tensorboard) are s
 If you need to adjust the container size or the , so that the resolution of height map changed, you should addjust the CNN in 'model.py' so that it can take the modified height map as input.
 
 ### Dataset
-You can download the prepared dataset from [here](https://drive.google.com/drive/folders/1TibQqFfzugui1gBI_wIcW6H6CzF_cIwj?usp=sharing), place the downloaded dataset into IR-BPP/dataset. Each dataset includes:
+You can download the prepared dataset from [here](https://drive.google.com/drive/folders/1TibQqFfzugui1gBI_wIcW6H6CzF_cIwj?usp=sharing). Unzip the downloaded datasets and place them into 'IR-BPP/dataset'. Each dataset includes:
 
 shape_vhacd (folder): Watertight convex decompositions of each polygonal mesh shape. Used for accurate physics simulation.
 
-pointCloud (folder): Point clouds pre-sampled from mesh surface. The DRL agent will re-sample 1024 points and pass them to a lightweight pointNet for shape represention.
+pointCloud (folder): Point clouds pre-sampled from mesh surface. The DRL agent will re-sample 1024 points and pass them to a lightweight pointNet for shape representation.
 
 
 test_sequence.pt: 
 The dataset consists of 10000 randomly generated trajectories, each with 100 shapes. Each item with a specified planar-stable pose is presented as an id, recorded in 'id2shape.pt'.
 
-id2shape.pt: Map the shape id to shape name.
+id2shape.pt: Map the shape id to the shape name.
 
+Contact me (alex.hang.zhao@gmail.com) if you need the corresponding undecomposed mesh files, for rendering and paper writing needs.
 
 
 ### Model
-We provide pretrained models [here](https://drive.google.com/drive/folders/1s9W7lGUTvhpiQN2CDzxkxUiPAOEfj9Yr?usp=sharing).
+We provide pre-trained models [here](https://drive.google.com/drive/folders/1s9W7lGUTvhpiQN2CDzxkxUiPAOEfj9Yr?usp=sharing).
 
 [//]: # (trained using the EMS scheme in a discrete environment, where the bin size is &#40;10,10,10&#41; and the item size range from 1 to 5.)
 
@@ -113,5 +114,5 @@ python main.py -h
 
 ### License
 ```
-This source code is released only for academic use. Please do not use it for commercial purpose without authorization of the author.
+This source code is released only for academic use. Please do not use it for commercial purposes without authorization of the author.
 ```
