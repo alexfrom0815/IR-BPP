@@ -46,7 +46,6 @@ def get_args():
     parser.add_argument('--learn-start', type=int, default=int(5e2), metavar='STEPS',
                         help='Number of steps before starting training')
 
-    parser.add_argument('--evaluate', action='store_true', help='Evaluate only')
     parser.add_argument('--evaluation-interval', type=int, default=100000, metavar='STEPS',
                         help='Number of training steps between evaluations')
     parser.add_argument('--evaluation-episodes', type=int, default=100, metavar='N',
@@ -87,6 +86,11 @@ def get_args():
     parser.add_argument('--resolutionH', type=float, default = 0.01)
     parser.add_argument('--resolutionZ', type=float, default = 0.01)
     parser.add_argument('--model', type=str, default=None)
+    parser.add_argument('--locmodel', type=str, default=None)
+    parser.add_argument('--ordmodel', type=str, default=None)
+
+    parser.add_argument('--evaluate', action='store_true', help='Evaluate only')
+    parser.add_argument('--evaluation_episodes', type=int, default=100)
 
 
     args = parser.parse_args()
@@ -137,7 +141,7 @@ def get_args():
     args.shotInfo = shotInfoPre(args, args.meshScale)
     args.simulation = True
     args.distributed = True
-    args.test = args.evaluate
+    # args.test = args.evaluate
 
     if args.dataSample == 'pose':
         args.test_name = './data/dataset/random_index_{}.pt'.format(args.categories)

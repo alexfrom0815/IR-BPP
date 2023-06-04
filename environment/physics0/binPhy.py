@@ -31,7 +31,7 @@ class PackingGame(gym.Env):
         self.previewNum    = args['previewNum']
         self.chooseItem    = self.previewNum > 1
         self.simulation    = args['simulation']
-        self.test          = args['test']
+        self.evaluate      = args['evaluate']
         self.maxBatch      =  args['maxBatch']
         self.heightResolution   = args['resolutionZ']
         self.dataSample    = args['dataSample']
@@ -44,7 +44,7 @@ class PackingGame(gym.Env):
         self.space = Space(self.bin_dimension, self.resolutionAct, self.resolutionH, False,   self.ZRotNum,
                            args['shotInfo'], self.scale)
 
-        if self.test and self.dataname is not None:
+        if self.evaluate and self.dataname is not None:
             self.item_creator = LoadItemCreator(data_name=self.dataname)
         else:
             if self.dataSample == 'category':
@@ -258,7 +258,7 @@ class PackingGame(gym.Env):
         self.packedId.append(id)
 
         if not succeeded:
-            if self.globalView and self.test:
+            if self.globalView and self.evaluate:
                 for replayIdx, idNow in enumerate(self.packedId):
                     positionT, orientationT = self.interface.get_Wraped_Position_And_Orientation(idNow, inner=False)
                     self.packed[replayIdx][2] = positionT

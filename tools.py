@@ -15,6 +15,7 @@ import transforms3d
 import pybullet as p
 import gym
 
+
 def load_mesh_plain(path,  ZRotNum, init = 'Centroid', scale = 1):
     mesh = trimesh.load(path)
     # print('len', len(mesh.vertices))
@@ -296,18 +297,15 @@ def get_mask_from_state(state, args, previewNum):
     return mask
 
 # Test DQN
-def test(args, dqn, printInfo = False, videoName = None, timeStr = None, times = ''):
+def test(args, dqn, printInfo = False, timeStr = None, times = ''):
     env = make_eval_env(args)
     T_rewards, T_lengths, T_ratio, T_ratio_local = [], [], [], []
     all_episodes = []
-    actionNum = env.action_space.n
     print('Evaluation Start')
     # Test performance over several episodes
     done = True
     dqn.online_net.eval()
     assert not dqn.online_net.training
-    if videoName is not None:
-        p.startStateLogging(p.STATE_LOGGING_VIDEO_MP4, videoName)
 
     placementTime = 0
     placementCounter = 0
@@ -357,9 +355,6 @@ def test(args, dqn, printInfo = False, videoName = None, timeStr = None, times =
                 all_episodes.append(copy.deepcopy( env.packed))
                 np.save(os.path.join('./logs/evaluation', timeStr, 'trajs{}.npy'.format(times)), all_episodes)
                 break
-
-    if videoName is not None:
-        p.stopStateLogging(p.STATE_LOGGING_VIDEO_MP4)
     env.close()
 
     avg_reward= np.mean(T_rewards)
@@ -381,7 +376,7 @@ def test(args, dqn, printInfo = False, videoName = None, timeStr = None, times =
     return avg_reward, avg_length
 
 # Test DQN
-def test_hierachical(args, dqns, printInfo = False, videoName = None, timeStr = None, times = ''):
+def test_hierachical(args, dqns, printInfo = False, timeStr = None, times = ''):
     env = make_eval_env(args)
     T_rewards, T_lengths, T_ratio, T_ratio_local = [], [], [], []
     all_episodes = []
@@ -392,11 +387,7 @@ def test_hierachical(args, dqns, printInfo = False, videoName = None, timeStr = 
         assert not dqn.online_net.training
     orderDQN, locDQN = dqns
 
-    if videoName is not None:
-        p.startStateLogging(p.STATE_LOGGING_VIDEO_MP4, videoName)
-    placementTime = 0
     placementCounter = 0
-    simulationTime = 0
     decisionTime = 0
 
     # todo should be a parameter
@@ -461,9 +452,6 @@ def test_hierachical(args, dqns, printInfo = False, videoName = None, timeStr = 
 
                 np.save(os.path.join('./logs/evaluation', timeStr, 'trajs{}.npy'.format(times)), all_episodes)
                 break
-
-    if videoName is not None:
-        p.stopStateLogging(p.STATE_LOGGING_VIDEO_MP4)
     env.close()
 
     avg_reward= np.mean(T_rewards)
