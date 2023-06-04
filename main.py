@@ -79,7 +79,6 @@ def main(args):
         else:
             args.dataSample = 'instance'
 
-    args.enable_rotation = config.enable_rotation
     args.categories = len(torch.load(args.dicPath))
 
     if args.data_name is None:
@@ -98,9 +97,7 @@ def main(args):
             args.ZRotNum = 4  # Max: 4/8
 
     args.bin_dimension = np.round(args.bin_dimension, decimals=6)
-    args.packed_holder = config.packed_holder
     args.boundingBoxVec = config.boundingBoxVec
-    args.DownRotNum = config.DownRotNum
     args.objVecLen = config.objVecLen
     args.load_memory_path = config.load_memory_path
     args.save_memory_path = config.save_memory_path
@@ -108,13 +105,10 @@ def main(args):
     args.meshScale = config.meshScale
     args.heightResolution = config.heightResolution
 
-    args.actionType = config.actionType if args.data_name is None else args.actionType
     args.selectedAction = config.selectedAction if args.data_name is None else args.selectedAction
-    if args.selectedAction: assert  args.actionType == 'Uniform'
     if args.data_name is None:
         args.model = config.model
 
-    args.convexAction = config.convexAction if args.data_name is None else args.convexAction
     args.samplePointsNum = config.samplePointsNum if args.data_name is None else args.samplePointsNum
     assert 'vhacd' in  args.objPath
 
@@ -132,11 +126,9 @@ def main(args):
     args.globalView = config.globalView if args.data_name is None else args.globalView
     args.poseDist  = config.poseDist
     args.shotInfo = shotInfoPre(args, args.meshScale)
-    args.rewardType = config.rewardType
     args.elementWise = config.elementWise
     args.encoderPath = config.encoderPath
     args.simulation = config.simulation
-    args.shapePreType = config.shapePreType
     args.test = config.test
     args.test_name = config.test_name
     args.hierachical = config.hierachical if args.data_name is None else args.hierachical

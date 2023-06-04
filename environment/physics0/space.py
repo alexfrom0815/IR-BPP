@@ -12,13 +12,13 @@ def draw_heatmap(heightMap, vmin = 0, vmax = 0.32):
 
 # Record heightMap for heuristic things.
 class Space(object):
-    def __init__(self, bin_dimension, resolutionAct, resolutionH, boxPack = False, DownRotNum = None, ZRotNum = None, shotInfo = None, scale = None):
+    def __init__(self, bin_dimension, resolutionAct, resolutionH, boxPack = False,  ZRotNum = None, shotInfo = None, scale = None):
         self.bin_dimension = bin_dimension
         self.resolutionH = resolutionH
         self.resolutionAct = resolutionAct
         self.stepSize = int(self.resolutionAct / self.resolutionH)
         assert self.stepSize == self.resolutionAct / self.resolutionH
-        self.rotNum = DownRotNum * ZRotNum
+        self.rotNum = ZRotNum
         self.scale = scale
         self.rangeX_C, self.rangeY_C = np.ceil(bin_dimension[0:2] / resolutionH).astype(np.int32)
         self.rangeX_A, self.rangeY_A = np.ceil(bin_dimension[0:2] / resolutionAct).astype(np.int32)
@@ -31,7 +31,7 @@ class Space(object):
         self.shotInfo = shotInfo
 
         self.transformation = []
-        DownFaceList, ZRotList = getRotationMatrix(DownRotNum, ZRotNum)
+        DownFaceList, ZRotList = getRotationMatrix(1, ZRotNum)
 
         for d in DownFaceList:
             for z in ZRotList:

@@ -15,14 +15,14 @@ import transforms3d
 import pybullet as p
 import gym
 
-def load_mesh_plain(path, DownRotNum, ZRotNum, init = 'Centroid', scale = 1):
+def load_mesh_plain(path,  ZRotNum, init = 'Centroid', scale = 1):
     mesh = trimesh.load(path)
     # print('len', len(mesh.vertices))
     if scale != 1:
         mesh.apply_scale(scale)
     mesh.apply_translation(- mesh.centroid)
     meshList = []
-    DownFaceList, ZRotList = getRotationMatrix(DownRotNum, ZRotNum)
+    DownFaceList, ZRotList = getRotationMatrix(1, ZRotNum)
 
     for d in DownFaceList:
         for z in ZRotList:
@@ -46,7 +46,7 @@ def extendMat(mat3, translation = None):
     return mat4
 
 def getRotationMatrix(DownRotNum, ZRotNum):
-
+    DownRotNum = 1
     Tx00  = extendMat(transforms3d.euler.euler2mat(0, 0, 0, 'sxyz'))
     Tx180 = extendMat(transforms3d.euler.euler2mat(np.pi, 0, 0, 'sxyz'))
     Tx90  = extendMat(transforms3d.euler.euler2mat(np.pi * 0.5, 0, 0, 'sxyz'))
@@ -77,42 +77,6 @@ def getRotationMatrix(DownRotNum, ZRotNum):
                 Tz22_5, Tz67_5, Tz112_5, Tz157_5, Tz202_5, Tz247_5, Tz292_5,Tz337_5]
 
     return DownFaceList[0:int(DownRotNum)], ZRotList[0:int(ZRotNum)]
-
-def load_mesh_with_rotation(path, DownRotNum, ZRotNum, init = 'BoundingBox', minArea = True):
-    assert False
-    mesh = trimesh.load(path)
-    mesh.remove_unreferenced_vertices()
-    transforms, probs = mesh.compute_stable_poses() # Computes stable orientations of a mesh and their quasi-static probabilities.
-    mesh.apply_transform(transforms[0])
-
-    if minArea:
-        areaList = np.zeros((360))
-        meshList = []
-        Tz = extendMat(transforms3d.euler.euler2mat(0, 0, np.pi * 1 / 180, 'sxyz'))
-        for i in range(360):
-            areaList[i] = mesh.extents[0] * mesh.extents[1]
-            meshList.append(mesh.copy())
-            mesh.apply_transform(Tz)
-        mesh = meshList[int(np.argmin(areaList))]
-
-    mesh.apply_translation(- mesh.centroid)
-
-    meshList = []
-    DownFaceList, ZRotList = getRotationMatrix(DownRotNum, ZRotNum)
-
-    for d in DownFaceList:
-        for z in ZRotList:
-            tmpObj = mesh.copy()
-            Transform = np.dot(z, d)
-            tmpObj.apply_transform(Transform)
-
-            if init == 'BoundingBox':  # Place the front-left-bottom point of object bounding box at origin.
-                tmpObj.apply_translation(- tmpObj.bounds[0])
-            else:
-                assert False
-            meshList.append(tmpObj)
-
-    return meshList
 
 def create_box(extents, init = 'BoundingBox'):
     mesh = trimesh.primitives.Box(extents=extents)
@@ -223,7 +187,6 @@ def backup(timeStr, args):
     copyfile('testconfig.py',    os.path.join(targetDir, 'testconfig.py'))
     copyfile('envs.py',    os.path.join(targetDir, 'envs.py'))
     copyfile('evaluation.py',    os.path.join(targetDir, 'evaluation.py'))
-    copyfile('graph_encoder.py',    os.path.join(targetDir, 'graph_encoder.py'))
 
     copyfile('main.py',   os.path.join(targetDir, 'main.py'))
     copyfile('model.py',   os.path.join(targetDir, 'model.py'))
@@ -270,7 +233,6 @@ def shapeProcessing(shapeDict, args):
     if shapeDict is None:
         return None
     else:
-        assert args.shapePreType == 'SurfacePointsRandom' or args.shapePreType == 'SurfacePointsEncode'
         shapeDict = torch.load(args.dicPath)
         pointCloudPath = args.pointCloud
 
@@ -293,16 +255,11 @@ def load_shape_dict(args, returnInfo = False, origin = False, scale = 1):
     shapeDict = torch.load(dicPath)
     for k in shapeDict.keys():
         if k >= args.categories: break
+
         loadPath = os.path.join(objPath, shapeDict[k])
-
-        if args.enable_rotation:
-            if args.envName == 'Physics-v0':
-                backDict[k] = load_mesh_plain(loadPath, args.DownRotNum, args.ZRotNum, 'BoundingBox', scale)
-        else:
-            if args.envName == 'Physics-v0':
-                backDict[k] = load_mesh_plain(loadPath, args.DownRotNum, args.ZRotNum, 'BoundingBox', scale)
-
+        backDict[k] = load_mesh_plain(loadPath,  args.ZRotNum, 'BoundingBox', scale)
         infoDict[k] = []
+
         for idx in range(len(backDict[k])):
             infoDict[k].append({'volume': backDict[k][idx].volume, 'extents': backDict[k][idx].extents})
     if returnInfo:
@@ -664,12 +621,10 @@ def make_eval_env(args):
                        shapeDict=args.shapeDict,
                        infoDict=args.infoDict,
                        dicPath=args.dicPath,
-                       enable_rotation=args.enable_rotation,
                        categories=args.categories,
                        bin_dimension=args.bin_dimension,
                        packed_holder=args.packed_holder,
                        boxPack=args.boxPack,
-                       DownRotNum=args.DownRotNum,
                        ZRotNum=args.ZRotNum,
                        heightMap=args.heightMap,
                        useHeightMap=args.useHeightMap,

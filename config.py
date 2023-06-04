@@ -107,7 +107,7 @@ useHeightMap = True
 globalView = False
 stability  = False
 poseDist   = False
-shapePreType = 'SurfacePointsRandom' # MeshVertices, SurfacePoints, PreTrain, Index, Triangle, SurfacePointsRandom, SurfacePointsEncode, GlobalIndices
+# shapePreType = 'SurfacePointsRandom' # MeshVertices, SurfacePoints, PreTrain, Index, Triangle, SurfacePointsRandom, SurfacePointsEncode, GlobalIndices
 actionType = 'Uniform' # Uniform, RotAction, LineAction, HeuAction
 rewardType = 'ratio'  # number, aabb, ratio
 distributed = True
@@ -148,6 +148,5 @@ maxBatch = 1
 randomConvex = False
 heightResolution = 0.01
 
-packed_holder = 100
 enable_rotation = True
 bin_dimension = np.round(bin_dimension, decimals=6)

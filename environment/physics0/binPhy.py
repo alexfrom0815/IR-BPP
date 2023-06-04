@@ -21,14 +21,11 @@ class PackingGame(gym.Env):
                  dicPath = None,
                  test = False,
                  dataname = None,
-                 packed_holder = 50,
-                 DownRotNum=None,
                  ZRotNum=None,
                  heightMap = False,
                  visual = False,
                  globalView = False, # if we cancel the global view, the heightmap need to be re-scanned.
                  shotInfo=None,
-                 actionType='Uniform', # Uniform
                  simulation=True,
                  scale = [100,100,100],
                  selectedAction = False,
@@ -52,12 +49,9 @@ class PackingGame(gym.Env):
         self.dicPath = load(dicPath)
         self.rangeX_A, self.rangeY_A = np.ceil(self.bin_dimension[0:2] / resolutionAct).astype(np.int32)
 
-        self.DownRotNum = DownRotNum
         self.ZRotNum    = ZRotNum
-        self.packed_holder = packed_holder
         self.heightMapPre = heightMap
         self.globalView = globalView
-        self.actionType = actionType
         self.selectedAction = selectedAction
         self.chooseItem = previewNum > 1
         self.previewNum = previewNum
@@ -65,7 +59,7 @@ class PackingGame(gym.Env):
         self.simulation = simulation
         self.item_vec = np.zeros((1000, 9))
 
-        self.space = Space(self.bin_dimension, resolutionAct, resolutionH, False,  self.DownRotNum, self.ZRotNum, shotInfo, self.scale)
+        self.space = Space(self.bin_dimension, resolutionAct, resolutionH, False,   self.ZRotNum, shotInfo, self.scale)
         if test and dataname is not None:
             self.item_creator = LoadItemCreator(data_name=dataname)
         else:
@@ -82,14 +76,14 @@ class PackingGame(gym.Env):
         self.item_idx = 0
 
         self.transformation = []
-        DownFaceList, ZRotList = getRotationMatrix(DownRotNum, ZRotNum)
+        DownFaceList, ZRotList = getRotationMatrix(1, ZRotNum)
         for d in DownFaceList:
             for z in ZRotList:
                 quat = transforms3d.quaternions.mat2quat(np.dot(z, d)[0:3, 0:3])
                 self.transformation.append([quat[1],quat[2],quat[3],quat[0]]) # Saved in xyzw
         self.transformation = np.array(self.transformation)
 
-        self.rotNum = self.ZRotNum * self.DownRotNum
+        self.rotNum = self.ZRotNum
         self.act_len = self.selectedAction
 
         if self.chooseItem:
