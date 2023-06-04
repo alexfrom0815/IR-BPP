@@ -8,7 +8,6 @@ from agent import Agent
 from memory import ReplayMemory
 from tensorboardX import SummaryWriter
 import time
-import config
 from tools import backup, registration_envs,  load_shape_dict, shotInfoPre, shapeProcessing
 from trainer import trainer, trainer_hierarchical
 from arguments import get_args
@@ -26,11 +25,7 @@ def main(args):
     timeStr = custom + '-' + time.strftime('%Y.%m.%d-%H-%M-%S', time.localtime(time.time()))
 
     if torch.cuda.is_available() and not args.disable_cuda:
-      if args.data_name is not None:
-          args.device = torch.device('cuda:{}'.format(args.device))
-      else:
-          args.device = torch.device('cuda:{}'.format(config.device))
-
+      args.device = torch.device('cuda:{}'.format(args.device))
       torch.cuda.manual_seed(args.seed)
       torch.backends.cudnn.enabled = args.enable_cudnn
     else:
@@ -45,7 +40,6 @@ def main(args):
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
     np.random.seed(args.seed)
-    args.distributed = config.distributed if args.data_name is None else args.distributed
     if args.distributed:
         import torch.multiprocessing as mp
         mp.set_start_method("spawn", force=True)

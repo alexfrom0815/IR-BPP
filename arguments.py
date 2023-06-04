@@ -136,7 +136,7 @@ def get_args():
     args.globalView = True if args.evaluate else False
     args.shotInfo = shotInfoPre(args, args.meshScale)
     args.simulation = True
-
+    args.distributed = True
     args.test = args.evaluate
 
     if args.dataSample == 'pose':

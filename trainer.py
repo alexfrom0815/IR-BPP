@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import torch
-from tools import save_memory,  test, get_mask_from_state
+from tools import get_mask_from_state
 from tqdm import trange
 from collections import deque
 from tensorboardX import SummaryWriter
@@ -152,11 +152,7 @@ class trainer(object):
 
 
         episode_rewards = deque(maxlen=10)
-        episode_area = deque(maxlen=10)
-        episode_stability = deque(maxlen=10)
         episode_ratio = deque(maxlen=10)
-        episode_dist = deque(maxlen=10)
-        episode_occu = deque(maxlen=10)
         episode_counter = deque(maxlen=10)
         state = envs.reset()
         reward_clip = torch.ones((args.num_processes, 1)) * args.reward_clip
@@ -164,7 +160,6 @@ class trainer(object):
         if args.distributed:
             counter= mp.Value('i', 0)
             lock = mp.Value('b', False)
-        recorder = []
         # Training loop
         self.dqn.train()
         for T in trange(1, args.T_max + 1):
@@ -186,18 +181,8 @@ class trainer(object):
                         episode_rewards.append(infos[_]['reward'])
                     else:
                         episode_rewards.append(infos[_]['episode']['r'])
-                    if 'bottom_area' in infos[_].keys():
-                        if not np.isnan(infos[_]['bottom_area']):
-                            episode_area.append(infos[_]['bottom_area'])
                     if 'ratio' in infos[_].keys():
                         episode_ratio.append(infos[_]['ratio'])
-                    if 'stability' in infos[_].keys():
-                        episode_stability.append(infos[_]['stability'])
-                    if 'poseDist' in infos[_].keys():
-                        if not np.isnan(infos[_]['poseDist']):
-                            episode_dist.append(infos[_]['poseDist'])
-                    if 'Occupancy' in infos[_].keys():
-                        episode_occu.append(infos[_]['Occupancy'])
                     if 'counter' in infos[_].keys():
                         episode_counter.append(infos[_]['counter'])
 
@@ -235,27 +220,13 @@ class trainer(object):
                     if T % args.print_log_interval == 0:
                         self.writer.add_scalar("Training/Value loss",  loss.mean().item(), T)
 
-                    if args.save_memory_path is not None and (T % args.save_interval == 0):
-                        for i in range(len(self.mem)):
-                            savePath = os.path.join(memory_save_path, 'memory{}'.format(i))
-                            save_memory(self.mem[i], savePath, args.disable_bzip_memory)
-
-
             state = next_state
             if len(episode_rewards)!= 0:
                 self.writer.add_scalar('Metric/Reward mean', np.mean(episode_rewards), T)
                 self.writer.add_scalar('Metric/Reward max', np.max(episode_rewards), T)
                 self.writer.add_scalar('Metric/Reward min', np.min(episode_rewards), T)
-            if len(episode_area) != 0:
-                self.writer.add_scalar('Metric/Area sum', np.mean(episode_area), T)
-            if len(episode_stability) != 0:
-                self.writer.add_scalar('Metric/Stability score', np.mean(episode_stability), T)
-            if len(episode_dist) != 0:
-                self.writer.add_scalar('Metric/Pose distance', np.mean(episode_dist), T)
             if len(episode_ratio) != 0:
                 self.writer.add_scalar('Metric/Ratio', np.mean(episode_ratio), T)
-            if len(episode_occu) != 0:
-                self.writer.add_scalar('Metric/Occupancy', np.mean(episode_occu), T)
             if len(episode_counter) != 0:
                 self.writer.add_scalar('Metric/Length', np.mean(episode_counter), T)
 
@@ -281,10 +252,7 @@ class trainer_hierarchical(object):
                 os.makedirs(memory_save_path)
 
         episode_rewards = deque(maxlen=10)
-        episode_area = deque(maxlen=10)
         episode_ratio = deque(maxlen=10)
-        episode_dist = deque(maxlen=10)
-        episode_occu = deque(maxlen=10)
         episode_counter = deque(maxlen=10)
         orderState = envs.reset()
         reward_clip = torch.ones((args.num_processes, 1)) * args.reward_clip
@@ -322,10 +290,8 @@ class trainer_hierarchical(object):
             else:
                 locMask = locState[:, 0 : args.selectedAction * 5].reshape(args.num_processes, args.selectedAction, 5)[:,:,-1]
 
-            # locState = torch.cat([locState, allShape], dim=1)
             locAction = self.locDQN.act(locState, locMask)  # Choose an action greedily (with noisy weights)
             next_order_state, reward, done, infos = envs.step(locAction.cpu().numpy())  # Step
-
 
             validSample = []
             for _ in range(len(infos)):
@@ -335,16 +301,8 @@ class trainer_hierarchical(object):
                         episode_rewards.append(infos[_]['reward'])
                     else:
                         episode_rewards.append(infos[_]['episode']['r'])
-                    if 'bottom_area' in infos[_].keys():
-                        if not np.isnan(infos[_]['bottom_area']):
-                            episode_area.append(infos[_]['bottom_area'])
                     if 'ratio' in infos[_].keys():
                         episode_ratio.append(infos[_]['ratio'])
-                    if 'poseDist' in infos[_].keys():
-                        if not np.isnan(infos[_]['poseDist']):
-                            episode_dist.append(infos[_]['poseDist'])
-                    if 'Occupancy' in infos[_].keys():
-                        episode_occu.append(infos[_]['Occupancy'])
                     if 'counter' in infos[_].keys():
                         episode_counter.append(infos[_]['counter'])
 
@@ -407,14 +365,8 @@ class trainer_hierarchical(object):
                 self.writer.add_scalar('Metric/Reward mean', np.mean(episode_rewards), T)
                 self.writer.add_scalar('Metric/Reward max', np.max(episode_rewards), T)
                 self.writer.add_scalar('Metric/Reward min', np.min(episode_rewards), T)
-            if len(episode_area) != 0:
-                self.writer.add_scalar('Metric/Area sum', np.mean(episode_area), T)
-            if len(episode_dist) != 0:
-                self.writer.add_scalar('Metric/Pose distance', np.mean(episode_dist), T)
             if len(episode_ratio) != 0:
                 self.writer.add_scalar('Metric/Ratio', np.mean(episode_ratio), T)
-            if len(episode_occu) != 0:
-                self.writer.add_scalar('Metric/Occupancy', np.mean(episode_occu), T)
             if len(episode_counter) != 0:
                 self.writer.add_scalar('Metric/Length', np.mean(episode_counter), T)
 

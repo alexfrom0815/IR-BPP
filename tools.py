@@ -78,16 +78,6 @@ def getRotationMatrix(DownRotNum, ZRotNum):
 
     return DownFaceList[0:int(DownRotNum)], ZRotList[0:int(ZRotNum)]
 
-def create_box(extents, init = 'BoundingBox'):
-    mesh = trimesh.primitives.Box(extents=extents)
-    mesh.apply_translation(- mesh.bounding_box.vertices[0])
-    if init == 'BoundingBox':  # Place the front-left-bottom point of object bounding box at origin.
-        mesh.apply_translation(- mesh.bounding_box.vertices[0])
-    elif init == 'MassCenter': # Place the object's center of mass at origin
-        mesh.apply_translation(- mesh.center_mass)
-        assert False
-    return mesh
-
 def gen_ray_origin_direction(xRange, yRange, resolution_h, boxPack = False, shift = 0.001):
 
     bottom = np.arange(0, xRange * yRange)
@@ -170,9 +160,6 @@ def shot_after_item_placement(mesh, ray_origins_ini, ray_directions_ini, xRange 
 
     return heightMapH, maskH
 
-
-
-
 def backup(timeStr, args):
     if args.evaluate:
         targetDir = os.path.join('./logs/evaluation', timeStr)
@@ -183,11 +170,9 @@ def backup(timeStr, args):
         os.makedirs(targetDir)
     copyfile('agent.py',  os.path.join(targetDir, 'agent.py'))
     copyfile('arguments.py',  os.path.join(targetDir, 'arguments.py'))
-    copyfile('config.py',    os.path.join(targetDir, 'config.py'))
     copyfile('testconfig.py',    os.path.join(targetDir, 'testconfig.py'))
     copyfile('envs.py',    os.path.join(targetDir, 'envs.py'))
     copyfile('evaluation.py',    os.path.join(targetDir, 'evaluation.py'))
-
     copyfile('main.py',   os.path.join(targetDir, 'main.py'))
     copyfile('model.py',   os.path.join(targetDir, 'model.py'))
     copyfile('tools.py', os.path.join(targetDir, 'tools.py'))
@@ -195,8 +180,7 @@ def backup(timeStr, args):
     copyfile('memory.py', os.path.join(targetDir, 'memory.py'))
 
     gymPath = './environment'
-    import config
-    envName = config.envName.split('-v')
+    envName = args.envName.split('-v')
     envName = envName[0].lower() + envName[1]
     envPath = os.path.join(gymPath, envName)
     copytree(envPath, os.path.join(targetDir, envName))
@@ -211,15 +195,6 @@ def registration_envs():
         id='Physics-v0',                                  # Format should be xxx-v0, xxx-v1
         entry_point='environment.physics0:PackingGame',   # Expalined in envs/__init__.py
     )
-
-def save_memory(memory, memory_path, disable_bzip):
-  if disable_bzip:
-    with open(memory_path, 'wb') as pickle_file:
-      pickle.dump(memory, pickle_file)
-  else:
-    with bz2.open(memory_path, 'wb') as zipped_pickle_file:
-      pickle.dump(memory, zipped_pickle_file)
-
 
 # Visualize each heightMap with colormap.
 def draw_heatmap(heightMap, vmin = 0, vmax = 0.3):
@@ -245,7 +220,6 @@ def shapeProcessing(shapeDict, args):
             shapeArray[shapeIdx] = data[0:pointsNum]
         return shapeArray
 
-
 def load_shape_dict(args, returnInfo = False, origin = False, scale = 1):
     backDict = {}
     infoDict = {}
@@ -266,8 +240,6 @@ def load_shape_dict(args, returnInfo = False, origin = False, scale = 1):
         return backDict, infoDict
     else:
         return backDict
-
-
 
 def shotInfoPre(args, meshScale = 1):
     shapeDict = args.shapeDict
@@ -321,8 +293,6 @@ def get_mask_from_state(state, args, previewNum):
         else:
             mask = state[:, 0: args.selectedAction * 5]
             mask = mask.reshape(-1, args.selectedAction, 5)[:, :, -1]
-
-
     return mask
 
 # Test DQN
@@ -347,7 +317,6 @@ def test(args, dqn, printInfo = False, videoName = None, timeStr = None, times =
         while True:
             s = time.time()
             if done:
-                # state, reward_sum, done, episode_length = env.reset(), 0, False, 0
                 state, reward_sum, done, episode_length = env.reset(), 0, False, 0
             state = torch.FloatTensor(state).reshape((1, -1)).to(args.device)
             mask = get_mask_from_state(state, args, args.previewNum)
@@ -411,97 +380,13 @@ def test(args, dqn, printInfo = False, videoName = None, timeStr = None, times =
     # Return average reward and Q-value
     return avg_reward, avg_length
 
-def test_with_given_traj(args, dqn, printInfo = False, videoName = None, timeStr = None, times = ''):
-    env = make_eval_env(args)
-    env.saveTrajRecord = args.saveTrajRecord
-    T_rewards, T_lengths, T_ratio, T_ratio_local = [], [], [], []
-    all_episodes = []
-    actionNum = env.action_space.n
-    print('Evaluation Start')
-    # Test performance over several episodes
-    done = True
-    dqn.online_net.eval()
-    assert not dqn.online_net.training
-    if videoName is not None:
-        p.startStateLogging(p.STATE_LOGGING_VIDEO_MP4, videoName)
-    placementTime = 0
-    placementCounter = 0
-    simulationTime = 0
-
-    candidates = args.candidates
-    for trajIdx  in candidates:
-        while True:
-            s = time.time()
-            if done:
-                # state, reward_sum, done, episode_length = env.reset(), 0, False, 0
-                state, reward_sum, done, episode_length = env.reset(trajIdx + 1), 0, False, 0
-            state = torch.FloatTensor(state).reshape((1, -1)).to(args.device)
-            mask = get_mask_from_state(state, args, args.previewNum)
-            action = dqn.act_e_greedy(state, mask, -1)
-            state, reward, done, _ = env.step(action.item())  # Step
-
-            e = time.time()
-            placementTime = placementTime + e - s
-            simulationTime = simulationTime + env.endSimulation - env.startSimulation
-            placementCounter += 1
-            print(placementTime / placementCounter, (placementTime - simulationTime) / placementCounter)
-
-            reward_sum += reward
-            episode_length += 1
-
-            if done:
-                ratio = env.get_ratio()
-                T_ratio.append(ratio)
-                occupancy = env.get_occupancy()
-                T_ratio_local.append(ratio / occupancy)
-                T_rewards.append(reward_sum)
-                T_lengths.append(episode_length)
-                if printInfo:
-                    print('avg_reward:', np.mean(T_rewards))
-                    print('avg_length:', np.mean(T_lengths))
-                    print('var_reward:', np.var(T_rewards))
-                    print('var_length:', np.var(T_lengths))
-
-                    print('Mean Ratio:', np.mean(T_ratio))
-                    print('Mean Ratio Local:', np.mean(T_ratio_local))
-                    print('Var Ratio:', np.var(T_ratio))
-                    print('Var Ratio Local:', np.var(T_ratio_local))
-                    print('Episode {} Ratio {}'.format(env.item_creator.traj_index, reward_sum))
-                all_episodes.append(copy.deepcopy( env.packed))
-                np.save(os.path.join('./logs/evaluation', timeStr, 'trajs{}.npy'.format(times)), all_episodes)
-                break
-
-    if videoName is not None:
-        p.stopStateLogging(p.STATE_LOGGING_VIDEO_MP4)
-    env.close()
-
-    avg_reward= np.mean(T_rewards)
-    avg_length= np.mean(T_lengths)
-    print('avg_reward:', avg_reward)
-    print('avg_length:', avg_length)
-    print('var_reward:', np.var(T_rewards))
-    print('var_length:', np.var(T_lengths))
-    print('Mean Ratio:', np.mean(T_ratio))
-    print('Mean Ratio Local:', np.mean(T_ratio_local))
-    print('Var Ratio:', np.var(T_ratio))
-    print('Var Ratio Local:', np.var(T_ratio_local))
-    if not os.path.exists(os.path.join('./logs/evaluation', timeStr)):
-        os.makedirs(os.path.join('./logs/evaluation', timeStr))
-    np.save(os.path.join('./logs/evaluation', timeStr, 'trajs{}.npy'.format(times)), all_episodes)
-    dqn.online_net.train()
-    assert dqn.online_net.training
-    # Return average reward and Q-value
-    return avg_reward, avg_length
-
 # Test DQN
 def test_hierachical(args, dqns, printInfo = False, videoName = None, timeStr = None, times = ''):
     env = make_eval_env(args)
     T_rewards, T_lengths, T_ratio, T_ratio_local = [], [], [], []
     all_episodes = []
     print('Evaluation Start')
-    # Test performance over several episodes
     done = True
-
     for dqn in dqns:
         dqn.online_net.eval()
         assert not dqn.online_net.training
@@ -537,9 +422,7 @@ def test_hierachical(args, dqns, printInfo = False, videoName = None, timeStr = 
                 orderAction = torch.argmax(itemValue[0])
                 locAction = itemValue[1][orderAction.item()]
             else:
-                s1 = time.time()
                 orderAction = orderDQN.act(orderState, None)
-                s2 = time.time()
 
             locState = env.get_action_candidates(orderAction.cpu().numpy().astype(np.int)[0] if len(orderAction.shape) > 0 else orderAction.item())
             if not select_item_with_one_dqn:
@@ -549,20 +432,9 @@ def test_hierachical(args, dqns, printInfo = False, videoName = None, timeStr = 
             s3 = time.time()
 
             orderState, reward, done, _ = env.step(locAction.item())  # Step
-
-            # e = time.time()
-
-            # placementTime = placementTime + e - s
-            # placementTime = placementTime + e - s - (s4 - s3)
-            # simulationTime = simulationTime + env.endSimulation - env.startSimulation
-
             decisionTime = decisionTime + s3 - s + env.action_stop - env.action_start
-            # decisionTime = decisionTime + s3 - s + env.action_stop - env.action_start - (s2 - s1)
 
             placementCounter += 1
-            print(decisionTime / placementCounter)
-            # print(1, placementTime, simulationTime)
-            # print(placementTime / placementCounter, (placementTime - simulationTime) / placementCounter)
 
             reward_sum += reward
             episode_length += 1
