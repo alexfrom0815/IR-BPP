@@ -66,7 +66,7 @@ The training data is generated on the fly. The training logs (tensorboard) are s
 [//]: # (item_size_set:  A list records the size of each item. The size of each item is also described by a vector of length 3.)
 
 [//]: # (```)
-If you need to adjust the container size or the , so that the resolution of height map changed, you should addjust the CNN in 'model.py' so that it can take the modified height map as input.
+If you need to adjust the container size or the height map resolution, so that the size of discretized height map changed, you should adjust the CNN in 'model.py' so that it can take the modified height map as input.
 
 ### Dataset
 You can download the prepared dataset from [here](https://drive.google.com/drive/folders/1TibQqFfzugui1gBI_wIcW6H6CzF_cIwj?usp=sharing). Unzip the downloaded datasets and place them into 'IR-BPP/dataset'. Each dataset includes:
