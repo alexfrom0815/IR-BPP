@@ -85,26 +85,20 @@ def learningParaHierachical(T, priority_weight_increase, model_save_path, orderD
     while True:
         if not lock.value:
             for i in range(bufferNum):
-                if args.orderTrain:
-                    orderMem[i].priority_weight = min(orderMem[i].priority_weight + priority_weight_increase, 1)  # Anneal importance sampling weight β to 1
-                if args.locTrain:
-                    locMem[i].priority_weight = min(locMem[i].priority_weight + priority_weight_increase, 1)  # Anneal importance sampling weight β to 1
+                orderMem[i].priority_weight = min(orderMem[i].priority_weight + priority_weight_increase, 1)  # Anneal importance sampling weight β to 1
+                locMem[i].priority_weight = min(locMem[i].priority_weight + priority_weight_increase, 1)  # Anneal importance sampling weight β to 1
 
-            if args.orderTrain:
-                orderDQN.reset_noise()
-                orderLoss = orderDQN.learn(orderMem)  # Train with n-step distributional double-Q learning
+            orderDQN.reset_noise()
+            orderLoss = orderDQN.learn(orderMem)  # Train with n-step distributional double-Q learning
 
-            if args.locTrain:
-                locDQN.reset_noise()
-                locLoss = locDQN.learn(locMem)  # Train with n-step distributional double-Q learning
+            locDQN.reset_noise()
+            locLoss = locDQN.learn(locMem)  # Train with n-step distributional double-Q learning
 
             # Update target network
             if timeStep - targetCounter >= args.target_update:
                 targetCounter = timeStep
-                if args.orderTrain:
-                    orderDQN.update_target_net()
-                if args.locTrain:
-                    locDQN.update_target_net()
+                orderDQN.update_target_net()
+                locDQN.update_target_net()
 
             if timeStep % args.checkpoint_interval == 0:
                     sub_time_str = time.strftime('%Y.%m.%d-%H-%M-%S', time.localtime(time.time()))
@@ -114,17 +108,13 @@ def learningParaHierachical(T, priority_weight_increase, model_save_path, orderD
                 checkCounter = timeStep
                 # if checkCounter % args.checkpoint_interval == 0:
                 #     sub_time_str = time.strftime('%Y.%m.%d-%H-%M-%S', time.localtime(time.time()))
-                if args.orderTrain:
-                    orderDQN.save(model_save_path, 'orderCheckpoint{}.pt'.format(sub_time_str))
-                if args.locTrain:
-                    locDQN.save(model_save_path, 'locCheckpoint{}.pt'.format(sub_time_str))
+                orderDQN.save(model_save_path, 'orderCheckpoint{}.pt'.format(sub_time_str))
+                locDQN.save(model_save_path, 'locCheckpoint{}.pt'.format(sub_time_str))
 
             if timeStep - logCounter >= args.print_log_interval:
                 logCounter = timeStep
-                if args.locTrain:
-                    writer.add_scalar("Training/Value loss", locLoss.mean().item(), logCounter)
-                if args.orderTrain:
-                    writer.add_scalar("Training/Order value loss", orderLoss.mean().item(), logCounter)
+                writer.add_scalar("Training/Value loss", locLoss.mean().item(), logCounter)
+                writer.add_scalar("Training/Order value loss", orderLoss.mean().item(), logCounter)
 
             timeStep += 1
         else:
@@ -265,17 +255,13 @@ class trainer_hierarchical(object):
         self.locDQN.eval()
 
         # Training loop
-        if args.orderTrain:
-            self.orderDQN.train()
-        if args.locTrain:
-            self.locDQN.train()
+        self.orderDQN.train()
+        self.locDQN.train()
         for T in trange(1, args.T_max + 1):
 
             if T % args.replay_frequency == 0:
-                if args.orderTrain:
-                    self.orderDQN.reset_noise()  # Draw a new set of noisy weights
-                if args.locTrain:
-                    self.locDQN.reset_noise()  # Draw a new set of noisy weights
+                self.orderDQN.reset_noise()  # Draw a new set of noisy weights
+                self.locDQN.reset_noise()  # Draw a new set of noisy weights
             orderAction = self.orderDQN.act(orderState, None)
             locState = envs.get_action_candidates(orderAction.cpu().numpy())
             locState = torch.from_numpy(np.array(locState)).float().to(args.device)
@@ -311,10 +297,8 @@ class trainer_hierarchical(object):
 
             for i in range(len(orderState)):
                 if validSample[i]:
-                    if args.orderTrain:
-                        self.orderMem[i].append(orderState[i], orderAction[i], reward[i], done[i])  # Append transition to memory
-                    if args.locTrain:
-                        self.locMem[i].append(locState[i], locAction[i], reward[i], done[i])  # Append transition to memory
+                    self.orderMem[i].append(orderState[i], orderAction[i], reward[i], done[i])  # Append transition to memory
+                    self.locMem[i].append(locState[i], locAction[i], reward[i], done[i])  # Append transition to memory
 
             # todo: sample outside and update priorities uniformly, or maintain their memory seperately
             if args.distributed:
@@ -326,38 +310,28 @@ class trainer_hierarchical(object):
             else:
                 if T >= args.learn_start:
                     for i in range(args.num_processes):
-                        if args.orderTrain:
-                            self.orderMem[i].priority_weight = min(self.orderMem[i].priority_weight + priority_weight_increase, 1)  # Anneal importance sampling weight β to 1
-                        if args.locTrain:
-                            self.locMem[i].priority_weight = min(self.locMem[i].priority_weight + priority_weight_increase, 1)  # Anneal importance sampling weight β to 1
+                        self.orderMem[i].priority_weight = min(self.orderMem[i].priority_weight + priority_weight_increase, 1)  # Anneal importance sampling weight β to 1
+                        self.locMem[i].priority_weight = min(self.locMem[i].priority_weight + priority_weight_increase, 1)  # Anneal importance sampling weight β to 1
 
                     if T % args.replay_frequency == 0:
-                        if args.orderTrain:
-                            orderLoss = self.orderDQN.learn(self.orderMem)  # Train with n-step distributional double-Q learning
-                        if args.locTrain:
-                            locLoss = self.locDQN.learn(self.locMem)  # Train with n-step distributional double-Q learning
+                        orderLoss = self.orderDQN.learn(self.orderMem)  # Train with n-step distributional double-Q learning
+                        locLoss = self.locDQN.learn(self.locMem)  # Train with n-step distributional double-Q learning
 
                     # Update target network
                     if T % args.target_update == 0:
-                        if args.orderTrain:
-                            self.orderDQN.update_target_net()
-                        if args.locTrain:
-                            self.locDQN.update_target_net()
+                        self.orderDQN.update_target_net()
+                        self.locDQN.update_target_net()
 
                     # Checkpoint the network #
                     if (args.checkpoint_interval != 0) and (T % args.save_interval == 0):
                         if T % args.checkpoint_interval == 0:
                             sub_time_str = time.strftime('%Y.%m.%d-%H-%M-%S', time.localtime(time.time()))
-                        if args.orderTrain:
-                            self.orderDQN.save(model_save_path, 'orderCheckpoint_{}.pt'.format(sub_time_str))
-                        if args.locTrain:
-                            self.locDQN.save(model_save_path, 'locCheckpoint_{}.pt'.format(sub_time_str))
+                        self.orderDQN.save(model_save_path, 'orderCheckpoint_{}.pt'.format(sub_time_str))
+                        self.locDQN.save(model_save_path, 'locCheckpoint_{}.pt'.format(sub_time_str))
 
                     if T % args.print_log_interval == 0:
-                        if args.orderTrain:
-                            self.writer.add_scalar("Training/Value loss",  locLoss.mean().item(), T)
-                        if args.locTrain:
-                            self.writer.add_scalar("Training/Order value loss",  orderLoss.mean().item(), T)
+                        self.writer.add_scalar("Training/Value loss",  locLoss.mean().item(), T)
+                        self.writer.add_scalar("Training/Order value loss",  orderLoss.mean().item(), T)
 
             orderState = next_order_state
 

@@ -42,7 +42,12 @@ We provide the packing utility performance of our method on each dataset here fo
 | *Box (continuous)* |        |                  |                  |                   |
 
 ## Dependencies
-* Please install dependencies by running this: pip install -r requirements.txt
+* Please install dependencies by running this: 
+```bash
+conda create -n irbpp python==3.7.7
+conda activate irbpp
+pip install -r requirements.txt
+```
 * This code is verified on OS: Ubuntu 16.04.
 
 ## Quick start
@@ -93,11 +98,11 @@ We provide pre-trained models [here](https://drive.google.com/drive/folders/1s9W
 
 For training online 3D BPP instances on  BlockOut:
 ```bash
-python main.py --device 0 --data_name blockout --custom blockoutexp --previewNum 1  --num_processes 16 --distributed --samplePointsNum 1024 --selectedAction 500 --resolutionA 0.02 --resolutionH 0.01
+python main.py --device 0 --dataset blockout --custom blockoutexp --previewNum 1  --num_processes 16 --distributed --samplePointsNum 1024 --selectedAction 500 --resolutionA 0.02 --resolutionH 0.01
 ```
 If you want to train a model that works on the **buffered** case with buffer size 10, add '--hierachical' and '--previewNum 10'':
 ```bash
-python main.py --device 0 --data_name blockout  --custom blockoutexp --hierachical  --previewNum 10 --num_processes 16 --distributed --samplePointsNum 1024 --selectedAction 500 --resolutionA 0.02 --resolutionH 0.01
+python main.py --device 1 --dataset blockout  --custom blockoutexphier --hierachical  --previewNum 10 --num_processes 16 --distributed --samplePointsNum 1024 --selectedAction 500 --resolutionA 0.02 --resolutionH 0.01
 ```
 
 

@@ -1,6 +1,6 @@
 # python==3.7.7
 numpy==1.21.3
-# torch==1.13.0
+torch==1.13.0
 trimesh==3.12.3
 gym==0.13.0
 matplotlib==3.3.1
