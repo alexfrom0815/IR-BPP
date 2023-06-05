@@ -29,7 +29,7 @@ For more details, please see our paper [Learning Physically Realizable Skills fo
 }
 ``` 
 
-### performance 
+### Performance 
 We provide the packing utility performance of our method on each dataset here for quick comparison. We run all methods in the same environment setup with the same test sequences. A total of 2000 object sequences, randomly generated from each dataset, are tested.
 
 | Dataset            | Online | Buffered (k = 3) | Buffered (k = 5) | Buffered (k = 10) |
