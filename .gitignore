@@ -65,7 +65,6 @@ dataset/final_data/IR_mix_mass/*
 /picture/BlenderToolbox/*/*.obj
 /picture/BlenderToolbox/*/*.ply
 /picture/BlenderToolbox/meshes
-*.png
 picture/BlenderToolbox/tempdata/*
 engines/*
 commandMine.py
