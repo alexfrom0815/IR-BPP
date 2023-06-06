@@ -1,7 +1,7 @@
 # IR-BPP: Learning Physically Realizable Skills for Online Packing of General 3D Shapes
 
 
-We develop a learning-based solver for packing arbitrarily-shaped objects in a physically realizable problem setting, which is arguably the most challenging setting of bin packing problems. This work is newly been accepted by **ACM Transactions on Graphics (TOG)**. 
+We develop a learning-based solver for packing **arbitrarily-shaped (irregular)** objects in a physically realizable problem setting, which is arguably the most challenging setting of bin packing problems. This work is newly been accepted by **ACM Transactions on Graphics (TOG)**. 
 See these links for video demonstration: [YouTube](https://www.youtube.com/watch?v=z4Q05EGcW64&t=56s), [bilibili](https://www.bilibili.com/video/BV1ho4y1M7gG/)
 
 

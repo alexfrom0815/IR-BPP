@@ -362,8 +362,7 @@ class DQNBPP(nn.Module):
       heightMap = heightMap.reshape((batchSize, 1, self.MapLength, self.MapLength))
       map_feature = self.heightEncoder(heightMap).reshape((batchSize, -1))
 
-      shapeIdx = next_k_shapes_ID.detach().long().reshape(-1)
-
+      shapeIdx = next_k_shapes_ID.detach().cpu().long().reshape(-1)
       next_k_shapes = self.shapeArray[shapeIdx]
       indices = np.random.randint(self.shapeArray.shape[1], size=self.args.samplePointsNum)
       next_k_shapes = next_k_shapes[:, indices].to(self.args.device)

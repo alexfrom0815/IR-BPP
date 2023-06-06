@@ -17,8 +17,8 @@ def main(args):
 
     # The name of this experiment, related file backups and experiment tensorboard logs will
     if args.custom is None:
-        custom = input('Please input the experiment name\n')
-    timeStr = custom + '-' + time.strftime('%Y.%m.%d-%H-%M-%S', time.localtime(time.time()))
+        args.custom = input('Please input the experiment name\n')
+    timeStr = args.custom + '-' + time.strftime('%Y.%m.%d-%H-%M-%S', time.localtime(time.time()))
 
     if torch.cuda.is_available() and not args.disable_cuda:
       args.device = torch.device('cuda:{}'.format(args.device))

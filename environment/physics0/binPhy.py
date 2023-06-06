@@ -98,8 +98,6 @@ class PackingGame(gym.Env):
         self.orderAction = 0
         self.hierachical = False
 
-
-
     def seed(self, seed=None):
         self.seed = seed
         if seed is not None:
