@@ -167,6 +167,9 @@ def backup(timeStr, args):
     else:
         targetDir = os.path.join('./logs/experiment', timeStr)
 
+    if not os.path.exists('./logs/runinfo'):
+        os.makedirs('./logs/runinfo')
+
     if not os.path.exists(targetDir):
         os.makedirs(targetDir)
     copyfile('agent.py',  os.path.join(targetDir, 'agent.py'))
