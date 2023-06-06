@@ -86,7 +86,7 @@ The dataset consists of 10000 randomly generated trajectories, each with 100 sha
 
 id2shape.pt: Map the shape id to the shape name.
 
-Contact me (alex.hang.zhao@gmail.com) if you need the corresponding undecomposed mesh files, for rendering and paper writing needs.
+Contact me (alex.hang.zhao@gmail.com) if you need the corresponding undecomposed mesh files, for rendering (like our teaser) and paper writing needs.
 
 
 ### Model
