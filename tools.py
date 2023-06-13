@@ -1,6 +1,5 @@
 #--coding:utf-8--
 import copy
-import time
 
 import numpy as np
 import trimesh
@@ -313,17 +312,13 @@ def test(args, dqn, printInfo = False, timeStr = None, times = ''):
 
     for _ in range(args.evaluation_episodes):
         while True:
-            s = time.time()
             if done:
                 state, reward_sum, done, episode_length = env.reset(), 0, False, 0
             state = torch.FloatTensor(state).reshape((1, -1)).to(args.device)
             mask = get_mask_from_state(state, args, args.previewNum)
-            net_s = time.time()
             action = dqn.act_e_greedy(state, mask, -1)
-            net_e = time.time()
             state, reward, done, _ = env.step(action.item())  # Step
 
-            e = time.time()
 
             reward_sum += reward
             episode_length += 1
@@ -375,42 +370,21 @@ def test_hierachical(args, dqns, printInfo = False, timeStr = None, times = ''):
     orderDQN, locDQN = dqns
 
     placementCounter = 0
-    decisionTime = 0
-
-    # todo should be a parameter
-    select_item_with_one_dqn = args.select_item_with_one_dqn
 
     for _ in range(args.evaluation_episodes):
         while True:
-            s = time.time()
             if done:
                 orderState, reward_sum, done, episode_length = env.reset(), 0, False, 0
             orderState = torch.FloatTensor(orderState).reshape((1, -1)).to(args.device)
 
-            if select_item_with_one_dqn:
-                all_observations = env.get_all_possible_observation()
-                all_observations = torch.from_numpy(np.array(all_observations)).to(args.device).reshape((args.previewNum,  -1))
-                all_masks = []
-                for obs in all_observations:
-                    obs = obs.reshape((1,-1))
-                    mask = get_mask_from_state(obs, args, 1)
-                    all_masks.append(mask)
-                all_masks = torch.cat(all_masks, dim=0)
-                itemValue = locDQN.evalutate_item(all_observations.float(), all_masks.float())
-                orderAction = torch.argmax(itemValue[0])
-                locAction = itemValue[1][orderAction.item()]
-            else:
-                orderAction = orderDQN.act(orderState, None)
+            orderAction = orderDQN.act(orderState, None)
 
             locState = env.get_action_candidates(orderAction.cpu().numpy().astype(np.int)[0] if len(orderAction.shape) > 0 else orderAction.item())
-            if not select_item_with_one_dqn:
-                locState = torch.from_numpy(np.array(locState)).float().to(args.device).reshape((1, -1))
-                mask = get_mask_from_state(locState, args, 1)
-                locAction = locDQN.act_e_greedy(locState, mask, -1)
-            s3 = time.time()
+            locState = torch.from_numpy(np.array(locState)).float().to(args.device).reshape((1, -1))
+            mask = get_mask_from_state(locState, args, 1)
+            locAction = locDQN.act_e_greedy(locState, mask, -1)
 
             orderState, reward, done, _ = env.step(locAction.item())  # Step
-            decisionTime = decisionTime + s3 - s + env.action_stop - env.action_start
 
             placementCounter += 1
 

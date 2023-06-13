@@ -107,9 +107,13 @@ python main.py --device 1 --dataset blockout  --custom blockoutexphier --hierach
 
 
 ### Evaluation
-To evaluate a model, you can add the `--evaluate` flag to `main.py`, for example:
+To evaluate a online model, you can add the `--evaluate` flag to `main.py`, specify your prefered location model in `--locmodel`, for example:
 ```bash
-python main.py --evaluate --device 0 --data_name blockout --custom blockoutexp --previewNum 1  --num_processes 16 --distributed --samplePointsNum 1024 --selectedAction 500 --resolutionA 0.02 --resolutionH 0.01
+python main.py --evaluate --locmodel path/to/your/location/model --device 0 --data_name blockout --custom blockoutexp --previewNum 1  --num_processes 1 --samplePointsNum 1024 --selectedAction 500 --resolutionA 0.02 --resolutionH 0.01
+```
+If you want to test models with buffer, you should add `--hierachical` and also pecify your prefered order model in `--ordmodel`, for example:
+```bash
+python main.py --evaluate --hierachical --locmodel path/to/your/location/model --ordmodel path/to/your/order/model --data_name blockout --custom blockoutexp --previewNum 10  --num_processes 1  --samplePointsNum 1024 --selectedAction 500 --resolutionA 0.02 --resolutionH 0.01
 ```
 
 ### Help

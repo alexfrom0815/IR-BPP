@@ -84,7 +84,7 @@ def get_args():
     parser.add_argument('--resolutionA', type=float, default = 0.02)
     parser.add_argument('--resolutionH', type=float, default = 0.01)
     parser.add_argument('--resolutionZ', type=float, default = 0.01)
-    parser.add_argument('--model', type=str, default=None)
+    # parser.add_argument('--model', type=str, default=None)
     parser.add_argument('--locmodel', type=str, default=None)
     parser.add_argument('--ordmodel', type=str, default=None)
 
@@ -120,7 +120,7 @@ def get_args():
         assert False
 
     args.objVecLen = 9
-
+    args.model = None
     args.load_memory_path = None
     args.save_memory_path = None
     args.scale =  [100, 100, 100] # fix it! don't change it!
