@@ -9,7 +9,16 @@ from .IRcreator import RandomItemCreator, LoadItemCreator, RandomInstanceCreator
 from .space import Space
 from .cvTools import getConvexHullActions
 import random
+import threading
 
+def non_blocking_simulation(interface, finished, id, non_blocking_result):
+
+    succeeded, valid = interface.simulateToQuasistatic(givenId=id,
+                                    linearTol=0.01,
+                                    angularTol=0.01)
+
+    finished[0] = True
+    non_blocking_result[0] = [succeeded, valid]
 class PackingGame(gym.Env):
     def __init__(self,
                  args
@@ -37,6 +46,8 @@ class PackingGame(gym.Env):
         self.dataSample    = args['dataSample']
         self.dataname      = args['test_name']
         self.visual        = args['visual']
+        self.non_blocking  = args['non_blocking']
+        self.time_limit    = args['time_limit']
 
 
         self.interface = None
@@ -99,6 +110,12 @@ class PackingGame(gym.Env):
         self.orderAction = 0
         self.hierachical = False
 
+        if self.non_blocking:
+            self.nullObs = np.zeros((self.obs_len))
+            self.finished = [True]
+            self.non_blocking_result = [None]
+            self.nowTask = False
+
     def seed(self, seed=None):
         self.seed = seed
         if seed is not None:
@@ -117,8 +134,8 @@ class PackingGame(gym.Env):
             if self.interface is not None:
                 self.interface.close()
                 del self.interface
-            self.interface = Interface(bin=self.bin_dimension, foldername=self.objPath,
-                                       visual=self.visual, scale=self.scale, simulationScale=self.meshScale)
+            self.interface = Interface(bin=self.bin_dimension, foldername=self.objPath, visual=self.visual,
+                                       scale=self.scale, simulationScale=self.meshScale, maxBatch=self.maxBatch,)
         else:
             self.interface.reset()
         self.item_creator.reset(index)
@@ -127,6 +144,7 @@ class PackingGame(gym.Env):
         self.next_item_vec[:] = 0
         self.item_idx = 0
         self.item_vec[:] = 0
+        self.id = None
         return self.cur_observation()
 
     def get_ratio(self):
@@ -228,42 +246,57 @@ class PackingGame(gym.Env):
 
     # Note the transform between Ra coord and Rh coord
     def step(self, action):
+        if self.non_blocking and not self.finished[0]:
+            return self.nullObs, 0.0, False, {'Valid': False}
 
-        rotIdx, targetFLB, coordinate = self.action_to_position(action)
-        rotation = self.transformation[int(rotIdx)]
+        if self.non_blocking and self.finished[0] and self.nowTask:
+            success, sim_suc = self.non_blocking_result[0]
+            self.nowTask = False
+            self.non_blocking_result[0] = None
 
-        valid = False
-        succeeded = self.prejudge(rotIdx, targetFLB, self.space.naiveMask)
-        id = self.interface.addObject(self.dicPath[self.next_item_ID][0:-4], targetFLB = targetFLB, rotation = rotation,
-                                      linearDamping = 0.5, angularDamping = 0.5)
+        else:
+            rotIdx, targetFLB, coordinate = self.action_to_position(action)
+            rotation = self.transformation[int(rotIdx)]
 
-        height = self.space.posZmap[rotIdx, coordinate[0], coordinate[1]]
-        self.interface.adjustHeight(id , height + self.tolerance)
+            sim_suc = False
+            success = self.prejudge(rotIdx, targetFLB, self.space.naiveMask)
+            self.id = self.interface.addObject(self.dicPath[self.next_item_ID][0:-4], targetFLB = targetFLB, rotation = rotation,
+                                          linearDamping = 0.5, angularDamping = 0.5)
 
-        if succeeded:
-            if self.simulation:
-                succeeded, valid = self.interface.simulateToQuasistatic(givenId=id,
-                                                                        linearTol = 0.01,
-                                                                        angularTol = 0.01,
-                                                                        maxBatch=self.maxBatch)
-            else:
-                succeeded, valid = self.interface.simulateHeight(id)
+            height = self.space.posZmap[rotIdx, coordinate[0], coordinate[1]]
+            self.interface.adjustHeight(self.id , height + self.tolerance)
 
-            if not self.globalView:
-                self.interface.disableObject(id)
+            if success:
+                if self.simulation:
+                    if self.non_blocking:
+                        self.finished[0] = False
+                        subProcess = threading.Thread(target=non_blocking_simulation, args=(self.interface, self.finished, self.id, self.non_blocking_result))
+                        subProcess.start()
+                        self.nowTask = True
+                        time.sleep(self.time_limit)
+                        if not self.finished[0]:
+                            return self.nullObs, 0.0, False, {'Valid': False}
+                    else:
+                        success, sim_suc = self.interface.simulateToQuasistatic(givenId=self.id,
+                                                                            linearTol = 0.01,
+                                                                            angularTol = 0.01)
+                else:
+                    success, sim_suc = self.interface.simulateHeight(self.id)
 
-        bounds = self.interface.get_wraped_AABB(id, inner=False)
-        positionT, orientationT = self.interface.get_Wraped_Position_And_Orientation(id, inner=False)
+        if not self.globalView:
+            self.interface.disableObject(self.id)
+
+        bounds = self.interface.get_wraped_AABB(self.id, inner=False)
+        positionT, orientationT = self.interface.get_Wraped_Position_And_Orientation(self.id, inner=False)
         self.packed.append([self.next_item_ID, self.dicPath[self.next_item_ID], positionT, orientationT])
-        self.packedId.append(id)
+        self.packedId.append(self.id)
 
-        if not succeeded:
+        if not success:
             if self.globalView and self.evaluate:
                 for replayIdx, idNow in enumerate(self.packedId):
                     positionT, orientationT = self.interface.get_Wraped_Position_And_Orientation(idNow, inner=False)
                     self.packed[replayIdx][2] = positionT
                     self.packed[replayIdx][3] = orientationT
-
             reward = 0.0
             info = {'counter': self.item_idx,
                     'ratio': self.get_ratio(),
@@ -272,7 +305,7 @@ class PackingGame(gym.Env):
             observation = self.cur_observation()
             return observation, reward, True, info
 
-        if valid:
+        if sim_suc:
             if self.globalView:
                 self.space.shot_whole()
             else:

@@ -88,6 +88,8 @@ def get_args():
     parser.add_argument('--ordmodel', type=str, default=None)
 
     parser.add_argument('--only_simulate_current', action='store_true', help='Only simulate the current item')
+    parser.add_argument('--non_blocking', action='store_true', help='Train actor and critic in non-blocking mode')
+    parser.add_argument('--time_limit', type=float, default = 0.01, help='Time limit for each simulation step when non_blocking is True')
 
     parser.add_argument('--evaluate', action='store_true', help='Evaluate only')
     parser.add_argument('--evaluation_episodes', type=int, default=2000)

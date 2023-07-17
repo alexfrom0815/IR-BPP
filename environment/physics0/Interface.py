@@ -15,7 +15,8 @@ class Interface:
                  foldername = '../dataset/datas/128',
                  visual = False,
                  scale = [1.0,1.0,1.0],
-                 simulationScale = None
+                 simulationScale = None,
+                 maxBatch = 2,
                  ):
         self.foldername = foldername
         if not os.path.exists(self.foldername):
@@ -61,7 +62,7 @@ class Interface:
         self.AABBCompensation = np.array([0.002, 0.002, 0.002])
         self.cameraForRecord()
         self.meshDict = {}
-
+        self.maxBatch = maxBatch
     def close(self):
         p.disconnect()
 
