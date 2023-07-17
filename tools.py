@@ -310,7 +310,7 @@ def test(args, dqn, printInfo = False, timeStr = None, times = ''):
     dqn.online_net.eval()
     assert not dqn.online_net.training
 
-    for _ in range(args.evaluation_episodes):
+    for _ in range(args.evaluation_episodes_test):
         while True:
             if done:
                 state, reward_sum, done, episode_length = env.reset(), 0, False, 0
@@ -371,7 +371,7 @@ def test_hierachical(args, dqns, printInfo = False, timeStr = None, times = ''):
 
     placementCounter = 0
 
-    for _ in range(args.evaluation_episodes):
+    for _ in range(args.evaluation_episodes_test):
         while True:
             if done:
                 orderState, reward_sum, done, episode_length = env.reset(), 0, False, 0
