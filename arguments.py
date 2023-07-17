@@ -73,20 +73,21 @@ def get_args():
     parser.add_argument('--device', type=int, default=0)
     parser.add_argument('--custom', type=str, default=None)
     parser.add_argument('--hierachical', action='store_true')
-    parser.add_argument('--previewNum', type=int, default=1) # 1 3 5 10
+    parser.add_argument('--bufferSize', type=int, default=1) # 1 3 5 10
     parser.add_argument('--num_processes', type=int, default=2) # 16 1
     parser.add_argument('--distributed', action='store_true')
     parser.add_argument('--samplePointsNum', type=int, default=1024)
     parser.add_argument('--selectedAction', type=int, default=500) # defalt 500
     parser.add_argument('--maxBatch', type=int, default=2) # how many batches for simulation
-    parser.add_argument('--globalView', type=bool, default = False)
     parser.add_argument('--visual', action='store_true', help='Render the scene')
     parser.add_argument('--resolutionA', type=float, default = 0.02)
     parser.add_argument('--resolutionH', type=float, default = 0.01)
     parser.add_argument('--resolutionZ', type=float, default = 0.01)
-    # parser.add_argument('--model', type=str, default=None)
+
     parser.add_argument('--locmodel', type=str, default=None)
     parser.add_argument('--ordmodel', type=str, default=None)
+
+    parser.add_argument('--only_simulate_current', action='store_true', help='Only simulate the current item')
 
     parser.add_argument('--evaluate', action='store_true', help='Evaluate only')
     parser.add_argument('--evaluation_episodes', type=int, default=2000)

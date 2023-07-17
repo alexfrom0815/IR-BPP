@@ -64,13 +64,13 @@ def main(args):
         # todo finish the init order policy part
         orderArgs = copy.deepcopy(args)
         orderArgs.level = 'order'
-        orderArgs.action_space = args.previewNum
+        orderArgs.action_space = args.bufferSize
         orderArgs.model = args.ordmodel
         orderDQN = Agent(orderArgs)
 
         locArgs = copy.deepcopy(args)
         locArgs.level = 'location'
-        locArgs.previewNum = 1
+        locArgs.bufferSize = 1
         locArgs.action_space = args.selectedAction
         locArgs.model = args.locmodel
         locDQN = Agent(locArgs)
@@ -78,7 +78,7 @@ def main(args):
         memNum = args.num_processes
         memory_capacity = int(args.memory_capacity / memNum)
         heightmapSize = np.prod(np.ceil(args.bin_dimension[0:2] / args.resolutionH).astype(np.int32))
-        order_obs_len = heightmapSize + args.previewNum
+        order_obs_len = heightmapSize + args.bufferSize
 
         loc_obs_len = heightmapSize + args.selectedAction * 5 + args.objVecLen
 

@@ -26,10 +26,10 @@ class PackingGame(gym.Env):
         self.dicPath       = load(args['dicPath'])
         self.ZRotNum       = args['ZRotNum']
         self.heightMapPre  = args['heightMap']
-        self.globalView    = args['globalView']
+        self.globalView    = args['only_simulate_current']
         self.selectedAction= args['selectedAction']
-        self.previewNum    = args['previewNum']
-        self.chooseItem    = self.previewNum > 1
+        self.bufferSize    = args['bufferSize']
+        self.chooseItem    = self.bufferSize > 1
         self.simulation    = args['simulation']
         self.evaluate      = args['evaluate']
         self.maxBatch      =  args['maxBatch']
@@ -72,7 +72,7 @@ class PackingGame(gym.Env):
         self.act_len = self.selectedAction
 
         if self.chooseItem:
-            self.act_len = self.previewNum
+            self.act_len = self.bufferSize
 
         if not self.chooseItem:
             self.obs_len = len(self.next_item_vec.reshape(-1))
@@ -82,7 +82,7 @@ class PackingGame(gym.Env):
             else:
                 self.obs_len += self.act_len
         else:
-            self.obs_len = self.previewNum
+            self.obs_len = self.bufferSize
 
         if self.heightMapPre:
             self.obs_len += self.space.heightmapC.size
@@ -208,7 +208,7 @@ class PackingGame(gym.Env):
 
                 result = np.concatenate((self.candidates.reshape(-1), result))
         else:
-            self.next_k_item_ID = self.item_creator.preview(self.previewNum)
+            self.next_k_item_ID = self.item_creator.preview(self.bufferSize)
             result = np.concatenate((np.array(self.next_k_item_ID), self.space.heightmapC.reshape(-1)))
 
         return result

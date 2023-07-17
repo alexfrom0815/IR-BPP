@@ -280,10 +280,10 @@ def shotInfoPre(args, meshScale = 1):
 
 
 
-def get_mask_from_state(state, args, previewNum):
+def get_mask_from_state(state, args, bufferSize):
     actionNum = args.action_space
 
-    if previewNum > 1:
+    if bufferSize > 1:
         mask = None
     else:
         if not args.selectedAction:
@@ -315,7 +315,7 @@ def test(args, dqn, printInfo = False, timeStr = None, times = ''):
             if done:
                 state, reward_sum, done, episode_length = env.reset(), 0, False, 0
             state = torch.FloatTensor(state).reshape((1, -1)).to(args.device)
-            mask = get_mask_from_state(state, args, args.previewNum)
+            mask = get_mask_from_state(state, args, args.bufferSize)
             action = dqn.act_e_greedy(state, mask, -1)
             state, reward, done, _ = env.step(action.item())  # Step
 

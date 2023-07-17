@@ -157,7 +157,7 @@ class trainer(object):
             if T % args.replay_frequency == 0 and not args.distributed:
                 self.dqn.reset_noise()  # Draw a new set of noisy weights
 
-            mask = get_mask_from_state(state, args, args.previewNum)
+            mask = get_mask_from_state(state, args, args.bufferSize)
             action = self.dqn.act(state, mask)  # Choose an action greedily (with noisy weights)
 
 
