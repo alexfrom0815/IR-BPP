@@ -24,8 +24,9 @@ For more details, please see our paper [Learning Physically Realizable Skills fo
 @article{zhao2022learning,
   title={Learning Physically Realizable Skills for Online Packing of General 3D Shapes},
   author={Zhao, Hang and Pan, Zherong and Yu, Yang and Xu, Kai},
-  journal={arXiv preprint arXiv:2212.02094},
-  year={2022}
+  journal={ACM Transactions on Graphics},
+  year={2022},
+  publisher={ACM New York, NY}
 }
 ``` 
 
