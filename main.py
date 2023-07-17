@@ -11,6 +11,7 @@ import time
 from tools import backup, registration_envs,  load_shape_dict, shotInfoPre, shapeProcessing, test_hierachical, test
 from trainer import trainer, trainer_hierarchical
 from arguments import get_args
+import gym
 from envs import make_vec_envs
 
 def main(args):
@@ -46,8 +47,9 @@ def main(args):
     if not os.path.exists(log_writer_path):
       os.makedirs(log_writer_path)
     writer = SummaryWriter(log_writer_path)
-    envs, spaces, obs_len = make_vec_envs(args, './logs/runinfo', True)
-    args.action_space = spaces[1].n
+
+    tempenv = gym.make(args.envName, args=args)
+    args.action_space = tempenv.action_space.n
 
 
     if not args.hierachical:
@@ -56,7 +58,7 @@ def main(args):
         dqn = Agent(args)
         memNum = args.num_processes
         memory_capacity = int(args.memory_capacity / memNum)
-        mem = [ReplayMemory(args, memory_capacity, obs_len) for _ in range(memNum)]
+        mem = [ReplayMemory(args, memory_capacity, tempenv.obs_len) for _ in range(memNum)]
         trainTool = trainer(writer, timeStr, dqn, mem)
     else:
         # todo finish the init order policy part
@@ -94,6 +96,7 @@ def main(args):
 
     else:
         # Perform all training.
+        envs, spaces, obs_len = make_vec_envs(args, './logs/runinfo', True)
         trainTool.train_q_value(envs, args)
 
 if __name__ == '__main__':

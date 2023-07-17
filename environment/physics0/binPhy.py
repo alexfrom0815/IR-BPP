@@ -36,9 +36,10 @@ class PackingGame(gym.Env):
         self.heightResolution   = args['resolutionZ']
         self.dataSample    = args['dataSample']
         self.dataname      = args['test_name']
+        self.visual        = args['visual']
 
-        self.interface = Interface(bin=self.bin_dimension, foldername = self.objPath,
-                                   visual=args['visual'], scale = self.scale, simulationScale=self.meshScale)
+
+        self.interface = None
         self.item_vec = np.zeros((1000, 9))
         self.rangeX_A, self.rangeY_A = np.ceil(self.bin_dimension[0:2] / self.resolutionAct).astype(np.int32)
         self.space = Space(self.bin_dimension, self.resolutionAct, self.resolutionH, False,   self.ZRotNum,
@@ -112,11 +113,12 @@ class PackingGame(gym.Env):
         self.space.reset()
 
         self.episodeCounter = (self.episodeCounter + 1) % self.updatePeriod
-        if self.episodeCounter == 0:
-            self.interface.close()
-            del self.interface
+        if self.episodeCounter == 0 or self.interface is None:
+            if self.interface is not None:
+                self.interface.close()
+                del self.interface
             self.interface = Interface(bin=self.bin_dimension, foldername=self.objPath,
-                                       visual=False, scale=self.scale, simulationScale=self.meshScale)
+                                       visual=self.visual, scale=self.scale, simulationScale=self.meshScale)
         else:
             self.interface.reset()
         self.item_creator.reset(index)

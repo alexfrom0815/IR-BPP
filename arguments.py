@@ -80,7 +80,7 @@ def get_args():
     parser.add_argument('--selectedAction', type=int, default=500) # defalt 500
     parser.add_argument('--maxBatch', type=int, default=2) # how many batches for simulation
     parser.add_argument('--globalView', type=bool, default = False)
-    parser.add_argument('--visual', type=bool, default = False)
+    parser.add_argument('--visual', action='store_true', help='Render the scene')
     parser.add_argument('--resolutionA', type=float, default = 0.02)
     parser.add_argument('--resolutionH', type=float, default = 0.01)
     parser.add_argument('--resolutionZ', type=float, default = 0.01)
@@ -89,7 +89,7 @@ def get_args():
     parser.add_argument('--ordmodel', type=str, default=None)
 
     parser.add_argument('--evaluate', action='store_true', help='Evaluate only')
-    parser.add_argument('--evaluation_episodes', type=int, default=100)
+    parser.add_argument('--evaluation_episodes', type=int, default=2000)
 
 
     args = parser.parse_args()
