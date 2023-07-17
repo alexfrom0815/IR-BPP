@@ -184,8 +184,8 @@ def observation_decode_irregular(observation, args):
 def observation_decode_irregular_k_shape(observation, args):
     batchSize = observation.shape[0]
     observation = observation.reshape((batchSize, -1))
-    shapes = observation[:, 0 : args.previewNum].reshape(batchSize, args.previewNum)
-    heightMap = observation[:, args.previewNum:]
+    shapes = observation[:, 0 : args.bufferSize].reshape(batchSize, args.bufferSize)
+    heightMap = observation[:, args.bufferSize:]
     return shapes, heightMap
 
 # Factorised NoisyLinear layer with bias
@@ -281,12 +281,12 @@ class DQNBPP(nn.Module):
 
 
 
-    if args.previewNum > 1:
+    if args.bufferSize > 1:
         self.embedder = GraphAttentionEncoder(
             n_heads=1,
             embed_dim=self.embedding_dim,
             n_layers=1,
-            graph_size=args.previewNum,
+            graph_size=args.bufferSize,
         )
         self.gat_project_layer = nn.Sequential(
             init_(nn.Linear(384, 256)),
@@ -385,7 +385,7 @@ class DQNBPP(nn.Module):
 
   def forward(self, x, log=False):
 
-      if self.args.previewNum > 1:
+      if self.args.bufferSize > 1:
         x, xGlobal = self.embed_k_buffer_shape_with_gat(x)
       else:
         x, xGlobal = self.embed_heightmap_and_sampled_point_cloud(x)

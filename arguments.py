@@ -48,7 +48,7 @@ def get_args():
 
     parser.add_argument('--evaluation-interval', type=int, default=100000, metavar='STEPS',
                         help='Number of training steps between evaluations')
-    parser.add_argument('--evaluation-episodes', type=int, default=100, metavar='N',
+    parser.add_argument('--evaluation-episodes-training', type=int, default=100, metavar='N',
                         help='Number of evaluation episodes to average over')
     # TODO: Note that DeepMind's evaluation method is running the latest agent for 500K frames ever every 1M steps
     parser.add_argument('--evaluation-size', type=int, default=500, metavar='N',
@@ -92,7 +92,7 @@ def get_args():
     parser.add_argument('--time_limit', type=float, default = 0.01, help='Time limit for each simulation step when non_blocking is True')
 
     parser.add_argument('--evaluate', action='store_true', help='Evaluate only')
-    parser.add_argument('--evaluation_episodes', type=int, default=2000)
+    parser.add_argument('--evaluation-episodes-test', type=int, default=2000)
 
 
     args = parser.parse_args()
