@@ -16,11 +16,12 @@ from envs import make_vec_envs
 
 def main(args):
 
-    # The name of this experiment, related file backups and experiment tensorboard logs will
+    # The name of this experiment, file backups and experiment tensorboard logs will be saved in related folder
     if args.custom is None:
         args.custom = input('Please input the experiment name\n')
     timeStr = args.custom + '-' + time.strftime('%Y.%m.%d-%H-%M-%S', time.localtime(time.time()))
 
+    # Set the device
     if torch.cuda.is_available() and not args.disable_cuda:
       args.device = torch.device('cuda:{}'.format(args.device))
       torch.cuda.manual_seed(args.seed)
@@ -53,6 +54,7 @@ def main(args):
 
 
     if not args.hierachical:
+        # Not hierachical, only a location policy to solve the online packing problem
         args.level = 'location'
         args.model = args.locmodel
         dqn = Agent(args)
@@ -61,7 +63,7 @@ def main(args):
         mem = [ReplayMemory(args, memory_capacity, tempenv.obs_len) for _ in range(memNum)]
         trainTool = trainer(writer, timeStr, dqn, mem)
     else:
-        # todo finish the init order policy part
+        # Besides the location policy, an order policy is also needed to solve the bufferd packing problem
         orderArgs = copy.deepcopy(args)
         orderArgs.level = 'order'
         orderArgs.action_space = args.bufferSize
@@ -89,11 +91,11 @@ def main(args):
         trainTool = trainer_hierarchical(writer, timeStr, [orderDQN, locDQN], [orderMem, locMem])
 
     if args.evaluate:
+        # Perform testing
         if args.hierachical:
             test_hierachical(args, [orderDQN, locDQN], True, timeStr)  # Test
         else:
             test(args, dqn, True,  timeStr)  # Test
-
     else:
         # Perform all training.
         envs, spaces, obs_len = make_vec_envs(args, './logs/runinfo', True)

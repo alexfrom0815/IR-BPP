@@ -9,12 +9,12 @@ import torch.multiprocessing as mp
 np.set_printoptions(threshold=np.inf)
 import time
 
+# Distributed training for online packing policy
 def learningPara(T, priority_weight_increase, model_save_path, dqn, mem, timeStr, args, counter, lock, sub_time_str):
     log_writer_path = './logs/runs/{}'.format('IR-' + timeStr + '-loss')
     if not os.path.exists(log_writer_path):
       os.makedirs(log_writer_path)
     writer = SummaryWriter(log_writer_path)
-    learnCounter = T
     targetCounter = T
     checkCounter = T
     logCounter = T
@@ -60,6 +60,7 @@ def learningPara(T, priority_weight_increase, model_save_path, dqn, mem, timeStr
         else:
             time.sleep(0.5)
 
+# Distributed training for buffered packing policy
 def learningParaHierachical(T, priority_weight_increase, model_save_path, orderDQN, locDQN,
                  orderMem, locMem, timeStr, args, counter, lock, sub_time_str):
     log_writer_path = './logs/runs/{}'.format('IR-' + timeStr + '-loss')
