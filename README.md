@@ -5,13 +5,11 @@ We develop a learning-based solver for packing **arbitrarily-shaped (irregular)*
 See these links for video demonstration: [YouTube](https://www.youtube.com/watch?v=z4Q05EGcW64&t=56s), [bilibili](https://www.bilibili.com/video/BV1ho4y1M7gG/)
 
 
-We release our source code and build well-established benchmark datasets. Our datasets consist of training and testing objects, separated into discrete cuboidal sets, continuous cuboidal sets, and large-scale irregular sets with various geometric characteristics, and specifying a container size. 
+We release our source code and build well-established benchmark datasets. Our datasets consist of training and testing objects, separated into regular cube sets and large-scale irregular sets with various geometric characteristics, and specifying a container size. 
 
 As our TOG reviewers suggested, although there have been numerous packing papers using RL for higher packing density, there is a lack of a **common** dataset to benchmark performance. We believe that having such a common benchmark would greatly facilitate research and comparison of different techniques.
 
-
 **This repo is being continuously updated, please stay tuned!**
-
 
 If you are interested, please star this repo! 
 
@@ -33,14 +31,15 @@ For more details, please see our paper [Learning Physically Realizable Skills fo
 ### Performance 
 We provide the packing utility performance of our method on each dataset here for quick comparison. We run all methods in the same environment setup with the same test sequences. A total of 2000 object sequences, randomly generated from each dataset, are tested.
 
-| Dataset            | Online | Buffered (k = 3) | Buffered (k = 5) | Buffered (k = 10) |
-|--------------------|:------:|-----------------:|-----------------:|------------------:|
-| *General*          | 44.5%  |            45.3% |            47.5% |             55.7% |
-| *BlockOut*         | 71.0%  |            71.7% |            74.8% |             78.0% |
-| *Kitchen*          | 39.2%  |            44.3% |            48.8% |             57.8$ |
-| *ABC*              | 34.0%  |            35.3% |            37.4% |             41.0% |
-| *Cube (Discrete)*  | 66.1%  |            67.9% |            70.8% |             74.8% |
+| Dataset          | Online | Buffered (k = 3) | Buffered (k = 5) | Buffered (k = 10) |
+|------------------|:------:|-----------------:|-----------------:|------------------:|
+| *General*        | 44.5%  |            45.3% |            47.5% |             55.7% |
+| *BlockOut*       | 71.0%  |            71.7% |            74.8% |             78.0% |
+| *Kitchen*        | 39.2%  |            44.3% |            48.8% |             57.8$ |
+| *ABC*            | 34.0%  |            35.3% |            37.4% |             41.0% |
+| *Cube*           | 66.1%  |            67.9% |            70.8% |             74.8% |
 
+Note: The cube dataset is composed of cubes with dimensions ranging from 0.03 to 0.15, with a unit size of 0.03. During training, we set action resolution (resolutionA) and heightmap resolution (resolutionH) to be 0.01.
 
 ## Dependencies
 * Please install dependencies by running this: 
