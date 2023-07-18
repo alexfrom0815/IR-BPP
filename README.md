@@ -39,7 +39,7 @@ We provide the packing utility performance of our method on each dataset here fo
 | *BlockOut*         | 71.0%  |            71.7% |            74.8% |             78.0% |
 | *Kitchen*          | 39.2%  |            44.3% |            48.8% |             57.8$ |
 | *ABC*              | 34.0%  |            35.3% |            37.4% |             41.0% |
-| *Cube (Discrete)*  | 66.1$  |            35.3% |            37.4% |             41.0% |
+| *Cube (Discrete)*  | 66.1%  |            67.9% |            70.8% |             74.8% |
 
 
 ## Dependencies
