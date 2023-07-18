@@ -12,7 +12,6 @@ import random
 import threading
 
 def non_blocking_simulation(interface, finished, id, non_blocking_result):
-
     succeeded, valid = interface.simulateToQuasistatic(givenId=id,
                                     linearTol=0.01,
                                     angularTol=0.01)
@@ -273,7 +272,12 @@ class PackingGame(gym.Env):
                         subProcess = threading.Thread(target=non_blocking_simulation, args=(self.interface, self.finished, self.id, self.non_blocking_result))
                         subProcess.start()
                         self.nowTask = True
-                        time.sleep(self.time_limit)
+                        start_time = time.time()
+                        end_time   = start_time
+                        while end_time - start_time < self.time_limit:
+                            end_time = time.time()
+                            if self.finished[0]:
+                                break
                         if not self.finished[0]:
                             return self.nullObs, 0.0, False, {'Valid': False}
                     else:
