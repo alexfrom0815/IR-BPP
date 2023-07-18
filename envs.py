@@ -90,8 +90,10 @@ def make_vec_envs(args,
         assert False
 
     spaces = [env.observation_space, env.action_space]
-    envs = ShmemVecEnv(envs, spaces, context='fork')
-
+    try:
+        envs = ShmemVecEnv(envs, spaces, context='fork')
+    except ValueError:
+        envs = ShmemVecEnv(envs, spaces, context='spawn')
     envs = VecPyTorch(envs, device)
 
     return envs, spaces, env.obs_len
