@@ -7,14 +7,13 @@ def get_args():
     # Note that hyperparameters may originally be reported in ATARI game frames instead of agent steps
     parser = argparse.ArgumentParser(description='Rainbow for IR BPP')
 
+    # Parameters for the reinforcement learning agent
     parser.add_argument('--hidden-size', type=int, default=128, metavar='SIZE', help='Network hidden size')
     parser.add_argument('--noisy-std', type=float, default=0.5, metavar='σ',
                         help='Initial standard deviation of noisy linear layers')
     parser.add_argument('--atoms', type=int, default=31, metavar='C', help='Discretised size of value distribution')
     parser.add_argument('--V-min', type=float, default=-1, metavar='V', help='Minimum of value distribution support')
-    # parser.add_argument('--V-min', type=float, default=0, metavar='V', help='Minimum of value distribution support')
     parser.add_argument('--V-max', type=float, default=8, metavar='V', help='Maximum of value distribution support')
-    # parser.add_argument('--V-max', type=float, default=1, metavar='V', help='Maximum of value distribution support')
     parser.add_argument('--target-update', type=int, default=int(1e3), metavar='τ',
                         help='Number of steps after which to update target network')
     parser.add_argument('--multi-step', type=int, default=3, metavar='n', help='Number of steps for multi-step return')
@@ -67,32 +66,32 @@ def get_args():
     parser.add_argument('--print-log-interval',     type=int,   default=10, help='How often to print training logs')
     parser.add_argument('--adam-eps', type=float, default=1.5e-4, metavar='ε', help='Adam epsilon')
 
-    # some ir packing settings
-    parser.add_argument('--envName', type=str, default='Physics-v0')
-    parser.add_argument('--dataset', type=str, default='blockout') # blockout general kitchen abc
-    parser.add_argument('--device', type=int, default=0)
-    parser.add_argument('--custom', type=str, default=None)
-    parser.add_argument('--hierachical', action='store_true')
-    parser.add_argument('--bufferSize', type=int, default=1) # 1 3 5 10
-    parser.add_argument('--num_processes', type=int, default=2) # 16 1
-    parser.add_argument('--distributed', action='store_true')
-    parser.add_argument('--samplePointsNum', type=int, default=1024)
-    parser.add_argument('--selectedAction', type=int, default=500) # defalt 500
-    parser.add_argument('--maxBatch', type=int, default=2) # how many batches for simulation
+    # Parameters for irregular shape packing
+    parser.add_argument('--envName', type=str, default='Physics-v0', help='The environment name for packing policy training and testing')
+    parser.add_argument('--dataset', type=str, default='blockout', help='The organized dataset folder for training') # blockout general kitchen abc
+    parser.add_argument('--device', type=int, default=0, help='GPU device ID')
+    parser.add_argument('--custom', type=str, default=None, help='Customized label for the experiment')
+    parser.add_argument('--hierachical', action='store_true', help='Use hierachical policy')
+    parser.add_argument('--bufferSize', type=int, default=1, help='Object buffer size') # 1 3 5 10
+    parser.add_argument('--num_processes', type=int, default=2, help='How many parallel processes used for training') # 16 1
+    parser.add_argument('--distributed', action='store_true', help='Use distributed training')
+    parser.add_argument('--samplePointsNum', type=int, default=1024, help='How many points to sample from the object surface')
+    parser.add_argument('--selectedAction', type=int, default=500, help='How many actions to select from the action space')
+    parser.add_argument('--maxBatch', type=int, default=2, help='How many batches for simulation')
     parser.add_argument('--visual', action='store_true', help='Render the scene')
-    parser.add_argument('--resolutionA', type=float, default = 0.02)
-    parser.add_argument('--resolutionH', type=float, default = 0.01)
-    parser.add_argument('--resolutionZ', type=float, default = 0.01)
+    parser.add_argument('--resolutionA', type=float, default = 0.02, help='The resolution for the action space')
+    parser.add_argument('--resolutionH', type=float, default = 0.01, help='The resolution for the heightmap')
+    parser.add_argument('--resolutionZ', type=float, default = 0.01, help='The resolution for the z axis')
 
-    parser.add_argument('--locmodel', type=str, default=None)
-    parser.add_argument('--ordmodel', type=str, default=None)
+    parser.add_argument('--locmodel', type=str, default=None, help='The path to load the trained location model to select location candidate.')
+    parser.add_argument('--ordmodel', type=str, default=None, help='(Optional) The path to load the trained order model to select object from the buffer')
 
     parser.add_argument('--only_simulate_current', action='store_true', help='Only simulate the current item')
     parser.add_argument('--non_blocking', action='store_true', help='Train actor and critic in non-blocking mode')
     parser.add_argument('--time_limit', type=float, default = 0.01, help='Time limit for each simulation step when non_blocking is True')
 
     parser.add_argument('--evaluate', action='store_true', help='Evaluate only')
-    parser.add_argument('--evaluation-episodes-test', type=int, default=2000)
+    parser.add_argument('--evaluation-episodes-test', type=int, default=2000, help='Number of evaluation episodes to average over')
 
 
     args = parser.parse_args()
