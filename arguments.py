@@ -116,7 +116,7 @@ def get_args():
     args.ZRotNum = 8  # Max: 4/8
     if  args.dataset == 'blockout':
         args.ZRotNum = 4  # Max: 4/8
-    elif 'box' in args.dataset:
+    elif 'cube' in args.dataset:
         args.ZRotNum = 2  # Max: 4/8
     else:
         assert False
