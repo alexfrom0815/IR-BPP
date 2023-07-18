@@ -4,12 +4,9 @@
 We develop a learning-based solver for packing **arbitrarily-shaped (irregular)** objects in a physically realizable problem setting, which is arguably the most challenging setting of bin packing problems. This work is newly been accepted by **ACM Transactions on Graphics (TOG)**. 
 See these links for video demonstration: [YouTube](https://www.youtube.com/watch?v=z4Q05EGcW64&t=56s), [bilibili](https://www.bilibili.com/video/BV1ho4y1M7gG/)
 
-
 We release our source code and build well-established benchmark datasets. Our datasets consist of training and testing objects, separated into regular cube sets and large-scale irregular sets with various geometric characteristics, and specifying a container size. 
 
-As our TOG reviewers suggested, although there have been numerous packing papers using RL for higher packing density, there is a lack of a **common** dataset to benchmark performance. We believe that having such a common benchmark would greatly facilitate research and comparison of different techniques.
-
-**This repo is being continuously updated, please stay tuned!**
+As our reviewers suggested, although there have been numerous packing papers using RL for higher packing density, there is a lack of a **common** dataset to benchmark performance. We believe that having such a common benchmark would greatly facilitate research and comparison of different techniques.
 
 If you are interested, please star this repo! 
 
