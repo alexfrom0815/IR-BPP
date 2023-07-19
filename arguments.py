@@ -82,6 +82,7 @@ def get_args():
     parser.add_argument('--resolutionA', type=float, default = 0.02, help='The resolution for the action space')
     parser.add_argument('--resolutionH', type=float, default = 0.01, help='The resolution for the heightmap')
     parser.add_argument('--resolutionZ', type=float, default = 0.01, help='The resolution for the z axis')
+    parser.add_argument('--resolutionRot', type=int, default = 8, help='The resolution for the rotation, 2 for cube, 4 for blockout, and 8 for the rest')
 
     parser.add_argument('--locmodel', type=str, default=None, help='The path to load the trained location model to select location candidate.')
     parser.add_argument('--ordmodel', type=str, default=None, help='(Optional) The path to load the trained order model to select object from the buffer')
@@ -113,13 +114,7 @@ def get_args():
     args.categories = len(torch.load(args.dicPath))
     args.bin_dimension = np.round([0.32, 0.32, 0.30], decimals=6)
 
-    args.ZRotNum = 8  # Max: 4/8
-    if  args.dataset == 'blockout':
-        args.ZRotNum = 4  # Max: 4/8
-    elif 'cube' in args.dataset:
-        args.ZRotNum = 2  # Max: 4/8
-    else:
-        assert False
+    args.ZRotNum = args.resolutionRot  # Max: 4/8
 
     args.objVecLen = 9
     args.model = None
