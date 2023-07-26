@@ -83,6 +83,7 @@ The dataset consists of 10000 randomly generated trajectories, each with 100 sha
 
 id2shape.pt: Map the shape id to the shape name.
 
+We provide [specific tools](https://github.com/alexfrom0815/Packing-Tools/tree/main/packing-shape-processing) for generating the dataset compatible with our code. 
 Contact me (alex.hang.zhao@gmail.com) if you need the corresponding undecomposed mesh files, for rendering (like our teaser) and paper writing needs.
 
 
