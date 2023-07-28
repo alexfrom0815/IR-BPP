@@ -220,6 +220,7 @@ class PackingGame(gym.Env):
                     ROT,X,Y = np.unravel_index(selectedIndex, (self.rotNum, self.rangeX_A, self.rangeY_A))
                     H = poszFlatten[selectedIndex]
                     V = self.space.naiveMask.reshape(-1)[selectedIndex]
+                    H[:] = self.bin_dimension[-1]
                     self.candidates = np.concatenate([ROT.reshape(-1, 1), X.reshape(-1, 1),
                                                      Y.reshape(-1, 1), H.reshape(-1, 1), V.reshape(-1, 1)], axis=1)
 
