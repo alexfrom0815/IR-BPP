@@ -63,12 +63,12 @@ The training data is generated on the fly. The training logs (tensorboard) are s
 
 [//]: # (```)
 
-[//]: # (container_size: A vector of length 3 describing the size of the container in the x, y, z dimension.)
+[//]: # (container_size: A vector of length 3 describing the size of the container in the x, y, and z dimensions.)
 
 [//]: # (item_size_set:  A list records the size of each item. The size of each item is also described by a vector of length 3.)
 
 [//]: # (```)
-If you need to adjust the container size or the height map resolution, so that the size of discretized height map changed, you should adjust the CNN in 'model.py' so that it can take the modified height map as input.
+If you need to adjust the container size or the height map resolution, so that the size of discretized height map changes, you should adjust the CNN in 'model.py' so that it can take the modified height map as input.
 
 ### Dataset
 You can download the prepared dataset from [here](https://drive.google.com/drive/folders/1TibQqFfzugui1gBI_wIcW6H6CzF_cIwj?usp=sharing). Unzip the downloaded datasets and place them into 'IR-BPP/dataset'. Each dataset includes:
@@ -105,11 +105,11 @@ python main.py --device 1 --dataset blockout  --custom blockoutexphier --hierach
 
 
 ### Evaluation
-To evaluate a online model, you can add the `--evaluate` flag to `main.py`, specify your prefered location model in `--locmodel`, for example:
+To evaluate an online model, you can add the `--evaluate` flag to `main.py`, and specify your preferred location model in `--locmodel`, for example:
 ```bash
 python main.py --evaluate --evaluation-episodes-test 2000 --locmodel path/to/your/location/model --device 0 --data_name blockout --custom blockoutexp --bufferSize 1  --num_processes 1 --samplePointsNum 1024 --selectedAction 500 --resolutionA 0.02 --resolutionH 0.01
 ```
-If you want to test models with buffer, you should add `--hierachical` and also pecify your prefered order model in `--ordmodel`, for example:
+If you want to test models with buffer, you should add `--hierachical` and also specify your preferred order model in `--ordmodel`, for example:
 ```bash
 python main.py --evaluate --evaluation-episodes-test 2000 --hierachical --locmodel path/to/your/location/model --ordmodel path/to/your/order/model --data_name blockout --custom blockoutexp --bufferSize 10  --num_processes 1  --samplePointsNum 1024 --selectedAction 500 --resolutionA 0.02 --resolutionH 0.01
 ```
