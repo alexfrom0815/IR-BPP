@@ -34,7 +34,7 @@ class PackingGame(gym.Env):
         self.dicPath       = load(args['dicPath'])
         self.ZRotNum       = args['ZRotNum']
         self.heightMapPre  = args['heightMap']
-        self.globalView    = args['only_simulate_current']
+        self.globalView    = not args['only_simulate_current']
         self.selectedAction= args['selectedAction']
         self.bufferSize    = args['bufferSize']
         self.chooseItem    = self.bufferSize > 1
