@@ -8,7 +8,7 @@ from agent import Agent
 from memory import ReplayMemory
 from tensorboardX import SummaryWriter
 import time
-from tools import backup, registration_envs,  load_shape_dict, shotInfoPre, shapeProcessing, test_hierachical, test
+from tools import backup, registration_envs,  load_shape_dict, shotInfoPre, shapeProcessing, test_hierarchical, test
 from trainer import trainer, trainer_hierarchical
 from arguments import get_args
 import gym
@@ -53,8 +53,8 @@ def main(args):
     args.action_space = tempenv.action_space.n
 
 
-    if not args.hierachical:
-        # Not hierachical, only a location policy to solve the online packing problem
+    if not args.hierarchical:
+        # Not hierarchical, only a location policy to solve the online packing problem
         args.level = 'location'
         args.model = args.locmodel
         dqn = Agent(args)
@@ -92,8 +92,8 @@ def main(args):
 
     if args.evaluate:
         # Perform testing
-        if args.hierachical:
-            test_hierachical(args, [orderDQN, locDQN], True, timeStr)  # Test
+        if args.hierarchical:
+            test_hierarchical(args, [orderDQN, locDQN], True, timeStr)  # Test
         else:
             test(args, dqn, True,  timeStr)  # Test
     else:
